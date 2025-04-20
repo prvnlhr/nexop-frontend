@@ -22,6 +22,7 @@ const VariantManagement: React.FC<VariantManagementProps> = ({ product }) => {
     handleVariantGenerate,
     attributes,
   } = useVariantContext();
+
   const handleSaveVariants = async () => {
     const payload = productVariants.map((variant) => {
       return {

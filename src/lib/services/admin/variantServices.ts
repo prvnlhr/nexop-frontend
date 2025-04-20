@@ -1,8 +1,9 @@
+import { revalidatePathHandler } from "@/lib/revalidation";
 import {
-  Variant,
-  VariantAttribute,
-  VariantImage,
-} from "@/app/generated/prisma";
+  CreateVariantPayload,
+  EditVariantPayload,
+  ProcessedVariantPayload,
+} from "@/types/variantType";
 import { uploadToCloudinary } from "@/utils/cloudinaryConfig";
 
 const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -38,37 +39,10 @@ export async function getProductVariants(productId: number | string) {
 }
 
 // CREATE NEW VARIANTS ---------------------------------------------------------------------------------------
-interface VariantImageData {
-  id?: number;
-  url: string;
-  order: number;
-}
-
-interface NewVariantPayload {
-  sku: string;
-  price: number;
-  stock: number;
-  status?: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
-  attributes: {
-    optionId: number;
-    attributeId: number;
-    attributeName?: string;
-    optionValue?: string;
-  }[];
-  images: VariantImageData[];
-  newImages: File[];
-  productId: number;
-}
-
-export interface CreateVariantsResponse {
-  variants: Variant[];
-  variantAttributes: VariantAttribute[];
-  variantImages: VariantImage[];
-}
 
 export async function createProductVariants(
-  variantsData: NewVariantPayload[]
-): Promise<CreateVariantsResponse> {
+  variantsData: CreateVariantPayload[]
+) {
   try {
     // Process each variant in parallel
     const createPromises = variantsData.map(async (variant) => {
@@ -139,43 +113,7 @@ export async function createProductVariants(
 }
 
 // EDIT VARIANTS ---------------------------------------------------------------------------------------
-interface EditVariantPayload {
-  id?: number;
-  sku: string;
-  price: number;
-  stock: number;
-  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
-  images: {
-    id?: number;
-    url: string;
-    order: number;
-  }[];
-  newImages: File[];
-  productId: number;
-}
-
-interface ProcessedVariantPayload {
-  id?: number;
-  sku: string;
-  price: number;
-  stock: number;
-  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
-  images: {
-    url: string;
-    publicId: string;
-    order: number;
-  }[];
-  productId: number;
-}
-
-export async function editProductVariants(
-  variants: EditVariantPayload[]
-): Promise<{
-  results: {
-    variant: Variant;
-    variantImages: VariantImage[];
-  }[];
-}> {
+export async function editProductVariants(variants: EditVariantPayload[]) {
   try {
     // Validate newImages count
     variants.forEach((variant) => {
@@ -235,8 +173,9 @@ export async function editProductVariants(
 
     // 3. Update variants in parallel by calling API for each variant
     const updatePromises = processedVariants.map(async (variant) => {
+      const variantSKU = variant.sku;
       const response = await fetch(
-        `${BASE_URL}/api/admin/variants/${variant.sku}`,
+        `${BASE_URL}/api/admin/variants/${variantSKU}`,
         {
           method: "PUT",
           headers: {
@@ -264,6 +203,11 @@ export async function editProductVariants(
     });
 
     const results = await Promise.all(updatePromises);
+
+    await revalidatePathHandler(
+      "/admin/inventory/products/edit/[productId]/manage-variants",
+      "page"
+    );
 
     return { results };
   } catch (error) {

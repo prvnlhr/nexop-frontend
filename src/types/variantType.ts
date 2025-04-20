@@ -46,3 +46,47 @@ export interface ProductVariant {
   images: VariantImage[];
   attributes: VariantAttribute[];
 }
+
+// File: frontend/types/variantTypes.ts
+
+// Interface for the full variant object
+export interface CreateVariantPayload {
+  attributes: VariantAttribute[];
+  images: VariantImage[];
+  newImages: File[];
+  price: number;
+  productId: number;
+  sku: string;
+  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+
+  stock: number;
+}
+
+export interface EditVariantPayload {
+  id?: number;
+  sku: string;
+  price: number;
+  stock: number;
+  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+  images: {
+    id?: number;
+    url: string;
+    order: number;
+  }[];
+  newImages: File[];
+  productId: number;
+}
+
+export interface ProcessedVariantPayload {
+  id?: number;
+  sku: string;
+  price: number;
+  stock: number;
+  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+  images: {
+    url: string;
+    publicId: string;
+    order: number;
+  }[];
+  productId: number;
+}

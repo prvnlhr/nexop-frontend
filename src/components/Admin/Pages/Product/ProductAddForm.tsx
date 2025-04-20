@@ -31,8 +31,15 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { watch, reset, errors, register, handleSubmit, setValue } =
-    useProductForm();
+  const {
+    watch,
+    reset,
+    errors,
+    register,
+    handleSubmit,
+    setValue,
+    isSubmitting,
+  } = useProductForm();
 
   const [imagePreviews, setImagePreviews] = useState<(string | ProductImage)[]>(
     []
@@ -258,7 +265,7 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({
                       </div>
                       {showCategoryList && (
                         <div
-                          className="absolute w-full h-[auto] mt-[45px] py-[5px] overflow-y-scroll bg-white border border-[#D0D5DD] rounded z-10"
+                          className="absolute w-full h-[auto] max-h-[350px] mt-[45px] py-[5px] overflow-y-scroll bg-white border border-[#D0D5DD] rounded z-10"
                           style={{
                             scrollbarWidth: "none",
                             msOverflowStyle: "none",
@@ -431,10 +438,11 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({
             </div>
             <div className="w-full h-[40px] flex items-center justify-end px-[10px]">
               <button
+                disabled={isSubmitting}
                 type="submit"
                 className="w-auto h-auto px-[10px] py-[8px] disabled:bg-gray-400 bg-[#635DB0] text-white text-[0.7rem] cursor-pointer"
               >
-                Save Product
+                {isSubmitting ? "..." : "Save Product"}
               </button>
             </div>
           </section>

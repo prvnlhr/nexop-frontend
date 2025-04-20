@@ -1,4 +1,3 @@
-import { Product } from "@/app/generated/prisma";
 import { ProductFormData } from "@/hooks/useProductForm";
 import { uploadToCloudinary } from "@/utils/cloudinaryConfig";
 
@@ -13,9 +12,7 @@ interface CreateProductPayload {
   images: File[];
 }
 
-export async function createProduct(
-  payload: CreateProductPayload
-): Promise<Product> {
+export async function createProduct(payload: CreateProductPayload) {
   try {
     const imageUploads = payload.images.map((file) => uploadToCloudinary(file));
     const uploadedImages = await Promise.all(imageUploads);
@@ -141,7 +138,7 @@ interface EditProductPayload {
 export async function editProductById(
   productId: string | number | undefined,
   payload: EditProductPayload
-): Promise<Product> {
+) {
   try {
     const response = await fetch(
       `${BASE_URL}/api/admin/products/${productId}`,

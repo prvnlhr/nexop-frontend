@@ -26,10 +26,11 @@ export const useProductForm = () => {
   const {
     register,
     handleSubmit,
+
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -51,5 +52,6 @@ export const useProductForm = () => {
     errors,
     reset,
     watch,
+    isSubmitting,
   };
 };
