@@ -14,6 +14,12 @@ export interface CreateAttributePayload {
   attributeOptions: string[];
 }
 
+interface AttributeCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface Attribute {
   id: number;
   name: string;
@@ -22,6 +28,8 @@ export interface Attribute {
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
+  optionsCount?: number;
+  category?: AttributeCategory;
 }
 
 export interface AttributeOption {
@@ -39,4 +47,20 @@ export interface AttributeWithOptions extends Attribute {
 export interface UpdateAttributeOptionsPayload {
   attributeId: number;
   options: string[];
+  name?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface AttributeItem {
+  id: number;
+  name: string;
+  displayOrder: number;
+  isFilterable: boolean;
+  optionsCount: number;
+  category: Category;
 }

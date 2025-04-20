@@ -1,71 +1,15 @@
 import React from "react";
 import { Icon } from "@iconify/react";
+import { AttributeItem } from "@/types/attributeTypes";
+import Link from "next/link";
 
-const categories = [
-  {
-    id: 1,
-    name: "Electronics",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 2,
-    name: "Laptops",
-    parentCategory: "Electronics",
-    action: "Edit | Delete",
-  },
-  {
-    id: 3,
-    name: "Smartphones",
-    parentCategory: "Electronics",
-    action: "Edit | Delete",
-  },
-  {
-    id: 4,
-    name: "Clothing",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 5,
-    name: "Men's Fashion",
-    parentCategory: "Clothing",
-    action: "Edit | Delete",
-  },
-  {
-    id: 6,
-    name: "Women's Fashion",
-    parentCategory: "Clothing",
-    action: "Edit | Delete",
-  },
-  {
-    id: 7,
-    name: "Home & Kitchen",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 8,
-    name: "Furniture",
-    parentCategory: "Home & Kitchen",
-    action: "Edit | Delete",
-  },
-  {
-    id: 9,
-    name: "Groceries",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 10,
-    name: "Organic Food",
-    parentCategory: "Groceries",
-    action: "Edit | Delete",
-  },
-];
+interface AttributesTableProps {
+  attributes: AttributeItem[];
+}
 
-const AttributesTable = () => {
-  const columns = ["Name", "Parent Category", "Action"];
+const AttributesTable: React.FC<AttributesTableProps> = ({ attributes }) => {
+  const columns = ["Name", "Category", "Options Count", "Action"];
+  console.log(attributes);
 
   return (
     <div
@@ -94,24 +38,31 @@ const AttributesTable = () => {
 
         {/* Table Body */}
         <tbody>
-          {categories.map((category, index) => (
+          {attributes.map((atrr, index) => (
             <tr key={index} className="hover:bg-[#F7FAFE] text-[0.8rem]">
               {/* Name */}
               <td className="px-4 py-2 h-[50px] border border-[#D0D5DD] text-[#1C3553] overflow-hidden">
                 <div className="flex items-center max-w-[300px]">
-                  <p className="font-medium truncate">{category.name}</p>
+                  <p className="font-medium truncate">{atrr.name}</p>
                 </div>
               </td>
 
-              {/* Parent Category */}
+              {/* Category */}
               <td className="px-4 py-2 whitespace-nowrap  border border-[#D0D5DD] text-[#1C3553] font-medium">
-                {category.parentCategory || "-"}
+                {atrr.category.name || "-"}
+              </td>
+              {/* Options */}
+              <td className="px-4 py-2 whitespace-nowrap  border border-[#D0D5DD] text-[#1C3553] font-medium">
+                {atrr.optionsCount}
               </td>
 
               {/* Action */}
               <td className="px-4 py-2 whitespace-nowrap border border-[#D0D5DD] text-[#1C3553]">
                 <div className="w-full h-full flex items-center">
-                  <button className="w-auto h-[30px] border flex items-center mr-[10px] rounded cursor-pointer">
+                  <Link
+                    href={`attributes/edit/${atrr.id}`}
+                    className="w-auto h-[30px] border flex items-center mr-[10px] rounded cursor-pointer"
+                  >
                     <div className="flex-1 h-full flex items-center justify-center pl-[10px] text-[0.7rem] text-[#12B76A]">
                       Edit
                     </div>
@@ -121,7 +72,7 @@ const AttributesTable = () => {
                         className="w-[50%] h-[50%]"
                       />
                     </div>
-                  </button>
+                  </Link>
                   <button className="w-auto h-[30px] border flex items-center ml-[10px] rounded cursor-pointer">
                     <div className="flex-1 h-full flex items-center justify-center pl-[10px] text-[0.7rem] text-[#D92D20]">
                       Delete

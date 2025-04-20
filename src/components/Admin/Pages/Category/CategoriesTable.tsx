@@ -1,70 +1,12 @@
 import React from "react";
 import { Icon } from "@iconify/react";
+import { Category } from "@/types/categoryTypes";
+import Link from "next/link";
 
-const categories = [
-  {
-    id: 1,
-    name: "Electronics",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 2,
-    name: "Laptops",
-    parentCategory: "Electronics",
-    action: "Edit | Delete",
-  },
-  {
-    id: 3,
-    name: "Smartphones",
-    parentCategory: "Electronics",
-    action: "Edit | Delete",
-  },
-  {
-    id: 4,
-    name: "Clothing",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 5,
-    name: "Men's Fashion",
-    parentCategory: "Clothing",
-    action: "Edit | Delete",
-  },
-  {
-    id: 6,
-    name: "Women's Fashion",
-    parentCategory: "Clothing",
-    action: "Edit | Delete",
-  },
-  {
-    id: 7,
-    name: "Home & Kitchen",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 8,
-    name: "Furniture",
-    parentCategory: "Home & Kitchen",
-    action: "Edit | Delete",
-  },
-  {
-    id: 9,
-    name: "Groceries",
-    parentCategory: null,
-    action: "Edit | Delete",
-  },
-  {
-    id: 10,
-    name: "Organic Food",
-    parentCategory: "Groceries",
-    action: "Edit | Delete",
-  },
-];
-
-const CategoriesTable = () => {
+interface CategoriesTableProps {
+  categories: Category[];
+}
+const CategoriesTable: React.FC<CategoriesTableProps> = ({ categories }) => {
   const columns = ["Name", "Parent Category", "Action"];
 
   return (
@@ -105,13 +47,16 @@ const CategoriesTable = () => {
 
               {/* Parent Category */}
               <td className="px-4 py-2 whitespace-nowrap  border border-[#D0D5DD] text-[#1C3553] font-medium">
-                {category.parentCategory || "-"}
+                {category.name || "-"}
               </td>
 
               {/* Action */}
               <td className="px-4 py-2 whitespace-nowrap border border-[#D0D5DD] text-[#1C3553]">
                 <div className="w-full h-full flex items-center">
-                  <button className="w-auto h-[30px] border flex items-center mr-[10px] rounded cursor-pointer">
+                  <Link
+                    href={`categories/edit/${category.id}`}
+                    className="w-auto h-[30px] border flex items-center mr-[10px] rounded cursor-pointer"
+                  >
                     <div className="flex-1 h-full flex items-center justify-center pl-[10px] text-[0.7rem] text-[#12B76A]">
                       Edit
                     </div>
@@ -121,7 +66,7 @@ const CategoriesTable = () => {
                         className="w-[50%] h-[50%]"
                       />
                     </div>
-                  </button>
+                  </Link>
                   <button className="w-auto h-[30px] border flex items-center ml-[10px] rounded cursor-pointer">
                     <div className="flex-1 h-full flex items-center justify-center pl-[10px] text-[0.7rem] text-[#D92D20]">
                       Delete

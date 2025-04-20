@@ -1,10 +1,13 @@
 "use client";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createCategory } from "@/lib/services/admin/categoryServices";
+import {
+  createCategory,
+  updateCategory,
+} from "@/lib/services/admin/categoryServices";
 import { Category } from "@/types/categoryTypes";
 
 // Zod schema for form validation
@@ -15,13 +18,18 @@ const categorySchema = z.object({
 
 type CategoryFormData = z.infer<typeof categorySchema>;
 
-interface CategoryAddFormProps {
+interface CategoryFormProps {
   categories: Category[];
+  editData?: Category | null;
 }
 
-const CategoryAddForm: React.FC<CategoryAddFormProps> = ({ categories }) => {
+const CategoryAddForm: React.FC<CategoryFormProps> = ({
+  categories,
+  editData,
+}) => {
   const [showParentCategoryList, setShowParentCategoryList] = useState(false);
   const [selectedParent, setSelectedParent] = useState<Category | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const {
     register,
@@ -37,20 +45,42 @@ const CategoryAddForm: React.FC<CategoryAddFormProps> = ({ categories }) => {
     },
   });
 
+  useEffect(() => {
+    if (editData) {
+      setIsEditing(true);
+      setValue("name", editData.name);
+      setValue("parentId", editData.parentId ?? null);
+
+      if (editData.parentId) {
+        const parent = categories.find((c) => c.id === editData.parentId);
+        setSelectedParent(parent || null);
+      }
+    }
+  }, [editData, categories, setValue]);
+
   const onSubmit = async (data: CategoryFormData) => {
     try {
-      const result = await createCategory({
-        name: data.name,
-        parentId: data.parentId ?? null,
-        // Convert undefined to null for DB
-      });
+      let result;
+      if (isEditing && editData) {
+        result = await updateCategory(editData.id, {
+          name: data.name,
+          parentId: data.parentId ?? null,
+        });
+      } else {
+        result = await createCategory({
+          name: data.name,
+          parentId: data.parentId ?? null,
+        });
+      }
 
-      console.log("Category created:", result);
-      reset();
-      setSelectedParent(null);
+      console.log("Category operation successful:", result);
+
+      if (!isEditing) {
+        reset();
+        setSelectedParent(null);
+      }
     } catch (error) {
-      console.error("Error creating category:", error);
-      // Optionally show error message to user
+      console.error("Error in category operation:", error);
     }
   };
 
@@ -182,7 +212,9 @@ const CategoryAddForm: React.FC<CategoryAddFormProps> = ({ categories }) => {
             disabled={isSubmitting}
             className="px-[20px] py-[10px] bg-[#625DAF] text-[0.75rem] text-white rounded cursor-pointer"
           >
-            {isSubmitting ? "Creating..." : "Create Category"}
+            {isSubmitting
+              ? `${isEditing ? "Editing" : "Creating"} Category...`
+              : `${isEditing ? "Edit" : "Create"} Category`}
           </button>
         </div>
       </form>

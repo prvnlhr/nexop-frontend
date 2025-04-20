@@ -4,7 +4,40 @@ import {
   CreateAttributePayload,
   AttributeWithOptions,
   UpdateAttributeOptionsPayload,
+  Attribute,
+  AttributeItem,
 } from "@/types/attributeTypes";
+
+export async function getAllAttributes(): Promise<AttributeItem[]> {
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/attributes`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "Get All Attributes Error:",
+        result.error || result.message
+      );
+      throw new Error(
+        result.error || result.message || "Failed to fetch all attributes"
+      );
+    }
+
+    console.log(result.data);
+    console.log("Get All Attributes Success:", result.message);
+    return result.data;
+  } catch (error) {
+    const err = error as Error;
+    console.error("Get All Attributes Error:", error);
+    throw new Error(`Failed to fetch all attributes: ${err.message}`);
+  }
+}
 
 export async function fetchAttributesByCategory(
   categoryId: number
@@ -38,7 +71,9 @@ export async function fetchAttributesByCategory(
   }
 }
 
-export async function createAttribute(payload: CreateAttributePayload) {
+export async function createAttribute(
+  payload: CreateAttributePayload
+): Promise<Attribute> {
   try {
     const response = await fetch(`${BASE_URL}/api/admin/attributes`, {
       method: "POST",
@@ -66,19 +101,19 @@ export async function createAttribute(payload: CreateAttributePayload) {
   }
 }
 
-export async function updateAttributeOptions(
+export async function updateAttribute(
   payload: UpdateAttributeOptionsPayload
 ): Promise<AttributeWithOptions> {
   try {
-    const attributeId = payload.attributeId;
+    const { attributeId, name, options } = payload;
     const response = await fetch(
-      `${BASE_URL}/api/admin/attributes/options/${attributeId}`,
+      `${BASE_URL}/api/admin/attributes/${attributeId}`,
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ options: payload.options }),
+        body: JSON.stringify({ name, options }), // Include name (undefined in Add Mode)
       }
     );
 
@@ -92,10 +127,70 @@ export async function updateAttributeOptions(
     }
 
     console.log("Update Options Success:", result.message);
+    return result.data as AttributeWithOptions;
+  } catch (error) {
+    const err = error as Error;
+    console.error("Update Options Error:", err);
+    throw new Error(`Failed to update attribute options: ${err.message}`);
+  }
+}
+export async function deleteAttribute(attributeId: number): Promise<void> {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/api/admin/attributes/${attributeId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Delete Attribute Error:", result.error || result.message);
+      throw new Error(
+        result.error || result.message || "Failed to delete attribute"
+      );
+    }
+
+    console.log("Delete Attribute Success:", result.message);
+  } catch (error) {
+    const err = error as Error;
+    console.error("Delete Attribute Error:", error);
+    throw new Error(`Failed to delete attribute: ${err.message}`);
+  }
+}
+
+export async function getAttributeById(
+  attributeId: number
+): Promise<AttributeWithOptions> {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/api/admin/attributes/details/${attributeId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Get Attribute Error:", result.error || result.message);
+      throw new Error(
+        result.error || result.message || "Failed to fetch attribute"
+      );
+    }
+
+    console.log("Get Attribute Success:", result.message);
     return result.data;
   } catch (error) {
     const err = error as Error;
-    console.error("Update Options Error:", error);
-    throw new Error(`Failed to update attribute options: ${err.message}`);
+    console.error("Get Attribute Error:", error);
+    throw new Error(`Failed to fetch attribute: ${err.message}`);
   }
 }

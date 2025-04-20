@@ -1,8 +1,13 @@
 import React from "react";
 import CategoriesTable from "./CategoriesTable";
 import Link from "next/link";
+import { Category } from "@/types/categoryTypes";
 
-const CategoryPage = () => {
+
+interface CategoryPageProps {
+  categories: Category[];
+}
+const CategoryPage:React.FC<CategoryPageProps> = ({categories}) => {
   return (
     <div className="w-full h-[100%] flex flex-col items-center justify-center p-[20px]">
       <div className="w-full h-[50px] flex items-center justify-between">
@@ -15,7 +20,7 @@ const CategoryPage = () => {
         </Link>
       </div>
       <div className="w-full h-[calc(100%-50px)] flex items-start">
-        <CategoriesTable />
+        <CategoriesTable categories={categories}/>
       </div>
     </div>
   );

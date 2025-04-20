@@ -71,6 +71,7 @@ body {
 }
 
 input:-webkit-autofill,
+input,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
@@ -78,4 +79,5 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s;
   -webkit-text-fill-color: #1c3553 !important;
   caret-color: #1c3553;
+  background-color: transparent;
 }
