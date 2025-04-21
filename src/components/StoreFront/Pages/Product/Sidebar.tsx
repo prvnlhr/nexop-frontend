@@ -30,7 +30,10 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             {props.type === "attributes" ? "FILTERS" : "CATEGORIES"}
           </p>
         </div>
-        <div className="w-full h-[calc(100%-30px)] flex flex-col p-[10px]">
+        <div
+          className="w-full h-[calc(100%-30px)] flex flex-col p-[10px] overflow-y-scroll"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {props.type === "attributes" ? (
             props.content.map((attr) => (
               <div key={attr.id} className="w-full h-auto flex flex-col ">

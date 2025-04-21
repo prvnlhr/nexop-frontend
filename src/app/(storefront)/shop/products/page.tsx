@@ -14,6 +14,7 @@ const page = async ({
     categoryId
   );
 
+
   return <ProductPage data={productData} />;
 };
 

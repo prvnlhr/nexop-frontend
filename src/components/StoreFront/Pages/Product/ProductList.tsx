@@ -1,6 +1,7 @@
 import { Product } from "@/types/storefront/productTypes";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Image from "next/image";
+import Link from "next/link";
 import React from "react";
 
 interface ProductListProps {
@@ -14,7 +15,8 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {products.map((prod, pId) => (
-          <div
+          <Link
+            href={`products/${prod.id}`}
             key={pId}
             className="w-auto h-auto mb-[20px] flex flex-col self-start bg-white 
             shadow-[0px_3px_5px_rgba(0,0,0,0.04)]
@@ -38,13 +40,13 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
             <div className="w-full h-[auto] grid grid-rows-[auto_auto_auto] p-[10px]">
               <div className="w-full h-auto flex items-center">
                 <p className="text-[0.8rem] font-medium  line-clamp-2">
-                  Nike - Air Force 1 07 special edition March released
+                  {prod.name}
                 </p>
               </div>
 
               <div className="w-full h-auto flex items-center my-[10px]">
                 <p className="text-[0.7rem] font-medium">
-                  ₹ 8195.50
+                  ₹ {prod.minPrice}
                   <span className="text-[0.65rem] text-[#667085] line-through ml-[5px]">
                     MRP : ₹9096.45
                   </span>
@@ -66,7 +68,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

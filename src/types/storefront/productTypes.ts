@@ -20,6 +20,7 @@ export interface Product {
 export interface AttributeOption {
   id: number;
   value: string;
+  active?: string;
 }
 
 export interface ProductAttribute {
@@ -27,6 +28,7 @@ export interface ProductAttribute {
   name: string;
   isFilterable: boolean;
   options: AttributeOption[];
+  displayOrder?: number;
 }
 
 export interface Subcategory extends Category {
@@ -58,3 +60,48 @@ export type ProductsResponse =
   | ProductsWithAttributesResponse
   | ProductsWithSubcategoriesResponse
   | NoProductsResponse;
+
+// Interface for a variant attribute
+export interface VariantAttribute {
+  attributeId: number;
+  attributeName: string;
+  optionId: number;
+  optionValue: string;
+}
+
+export interface ProductImage {
+  id: number;
+  url: string;
+  altText: string | null;
+  isThumbnail: boolean;
+  order: number;
+}
+
+export interface ProductVariant {
+  id: number;
+  sku: string;
+  price: number;
+  stock: number;
+  attributes: VariantAttribute[];
+  images: ProductImage[];
+}
+
+export interface ProductDetails {
+  id: number;
+  name: string;
+  slug: string | null;
+  description: string;
+  brand: string;
+  basePrice: number;
+  images: ProductImage[];
+  attributes: ProductAttribute[];
+  variants: ProductVariant[];
+  category: Category;
+  selectedVariant: {
+    id: number;
+    price: number;
+    sku: string;
+    stock: number;
+    attributes: VariantAttribute[];
+  } | null;
+}
