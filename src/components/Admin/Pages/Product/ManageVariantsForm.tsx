@@ -1,9 +1,9 @@
 "use client";
-import React, { useEffect } from "react";
-import VariantManagement from "./VariantManagement/VariantManagement";
-import VariantEditForm from "./VariantManagement/VariantEditForm";
+import React from "react";
+// import VariantManagement from "./VariantManagement/VariantManagement";
+// import VariantEditForm from "./VariantManagement/VariantEditForm";
 import { Product } from "@/types/productType";
-import { useVariantContext } from "@/context/VariantContext";
+// import { useVariantContext } from "@/context/VariantContext";
 import { Attribute, ProductVariant } from "@/types/variantType";
 
 interface ManageVariantsFormProps {
@@ -16,26 +16,17 @@ const ManageVariantsForm: React.FC<ManageVariantsFormProps> = ({
   attributes,
   variants,
 }) => {
-  const { setAttributes, setProductVariants } = useVariantContext();
-
-  useEffect(() => {
-    setAttributes(attributes);
-    setProductVariants(variants);
-  }, [attributes, variants, setAttributes, setProductVariants]);
+  console.log(" variants:", variants);
+  console.log(" attributes:", attributes);
+  console.log(" product:", product);
 
   return (
     <div className="w-full h-full flex p-[20px]">
-      <div
-        className="w-[70%] overflow-y-scroll"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        <VariantManagement
-          selectedCategory={product.category}
-          product={product}
-        />
-      </div>
-      <div className="w-[30%] h-full boder">
-        <VariantEditForm />
+      <div className="w-full h-full border border-black/10 rounded">
+        <div className="w-full h-[40px] border">
+          
+        </div>
+        <div className="w-full h-auto border"></div>
       </div>
     </div>
   );
