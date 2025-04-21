@@ -101,3 +101,83 @@ export const productAttributes: ProductAttribute[] = [
     ],
   },
 ];
+interface ProductItem {
+  sku: string;
+  name: string;
+  price: number; // Changed to number type
+  stock: number;
+  active: boolean;
+}
+
+export const variants: ProductItem[] = [
+  {
+    sku: "SKU-IPH-WHT-TITANIUM-128GB",
+    name: "iPhone 16 Pro - White Titanium 128GB",
+    price: 126000,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-IPH-BLK-TITANIUM-256GB",
+    name: "iPhone 16 Pro - Black Titanium 256GB",
+    price: 139000,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-IPH-BLU-TITANIUM-512GB",
+    name: "iPhone 16 Pro - Blue Titanium 512GB",
+    price: 152000,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-IPH-NAT-TITANIUM-1TB",
+    name: "iPhone 16 Pro - Natural Titanium 1TB",
+    price: 179000,
+    stock: Math.floor(Math.random() * 100),
+    active: false,
+  },
+  {
+    sku: "SKU-SAM-GRY-S24ULTRA-256GB",
+    name: "Samsung Galaxy S24 Ultra - Gray 256GB",
+    price: 129999,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-SAM-BLK-S24ULTRA-512GB",
+    name: "Samsung Galaxy S24 Ultra - Black 512GB",
+    price: 139999,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-GGL-PXL8PRO-256GB",
+    name: "Google Pixel 8 Pro - Obsidian 256GB",
+    price: 106999,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-OPP-FNDX6PRO-256GB",
+    name: "Oppo Find X6 Pro - Black 256GB",
+    price: 89999,
+    stock: Math.floor(Math.random() * 100),
+    active: false,
+  },
+  {
+    sku: "SKU-ONP-11-256GB",
+    name: "OnePlus 11 5G - Eternal Green 256GB",
+    price: 61999,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+  {
+    sku: "SKU-XIA-13TPRO-512GB",
+    name: "Xiaomi 13T Pro - Alpine Blue 512GB",
+    price: 59999,
+    stock: Math.floor(Math.random() * 100),
+    active: true,
+  },
+];

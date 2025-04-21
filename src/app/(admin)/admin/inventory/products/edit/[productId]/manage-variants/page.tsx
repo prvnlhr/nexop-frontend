@@ -1,13 +1,12 @@
-// import ManageVariantsForm from "@/components/Admin/Pages/Product/ManageVariantsForm";
-import ManageVariantsPage from "@/components/Admin/Pages/Product/VariantManagement/ManageVariantsPage";
 // import { getProductVariants } from "@/lib/services/admin/variantServices";
+import ManageVariantsPage from "@/components/Admin/Pages/Product/VariantManagement/Pages/ManageVariantsPage";
 import React from "react";
 
 type Params = Promise<{ productId: string }>;
 const page = async ({ params }: { params: Params }) => {
-  // const { productId } = await params;
+  const { productId } = await params;
+  console.log(" productIdxxxx:", productId);
   // const { attributes, product, variants } = await getProductVariants(productId);
-  console.log(" params:", params);
   return <ManageVariantsPage />;
 };
 

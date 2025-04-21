@@ -1,11 +1,18 @@
 import React from "react";
 import { Icon } from "@iconify/react";
-import { useVariantContext } from "@/context/VariantContext";
+// import { useVariantContext } from "@/context/VariantContext";
+// import { variants as productVariants } from "@/utils/sampleData";
+import { ProductDetails, Variant } from "@/types/variantsNewTypes";
+import { useVariantManagementContext } from "@/context/VariantManagementContext";
 
-const VariantsTable = () => {
-  const columns = ["SKU", "Price", "Stock", "Action"];
+interface VariantsTableProps {
+  variants: Variant[];
+  product: ProductDetails;
+}
+const VariantsTable: React.FC<VariantsTableProps> = ({ variants }) => {
+  const columns = ["SKU", "Name", "Price", "Stock", "Action"];
 
-  const { productVariants, handleVariantEditing } = useVariantContext();
+  const { setEditingVariant } = useVariantManagementContext();
 
   return (
     <div
@@ -35,7 +42,7 @@ const VariantsTable = () => {
 
         {/* Table Body */}
         <tbody>
-          {productVariants.map((variant, index) => (
+          {variants.map((variant, index) => (
             <tr key={index} className="hover:bg-[#F7FAFE] text-[0.8rem]">
               {/* SKU */}
               <td className="px-4 py-2 h-[50px] border border-[#D0D5DD] text-[#1C3553] overflow-hidden">
@@ -44,9 +51,17 @@ const VariantsTable = () => {
                 </div>
               </td>
 
+              <td className="px-4 py-2 h-[50px] border border-[#D0D5DD] text-[#1C3553] overflow-hidden">
+                <div className="flex items-center max-w-[300px]">
+                  <p className="font-medium truncate">
+                    {variant.name || "- - -"}
+                  </p>
+                </div>
+              </td>
+
               {/* Variant price */}
               <td className="px-4 py-2 whitespace-nowrap  border border-[#D0D5DD] text-[#1C3553] font-medium">
-                ₹{variant.price.toFixed(2)}
+                ₹{variant.price}
               </td>
 
               <td className="px-4 py-2 whitespace-nowrap border border-[#D0D5DD] text-[#1C3553] font-medium">
@@ -56,7 +71,7 @@ const VariantsTable = () => {
               <td className="px-4 py-2 whitespace-nowrap border border-[#D0D5DD] text-[#1C3553]">
                 <div className="w-full h-full flex items-center">
                   <button
-                    onClick={() => handleVariantEditing(variant)}
+                    onClick={() => setEditingVariant(variant)}
                     className="w-auto h-[30px] border flex items-center mr-[10px] rounded cursor-pointer"
                   >
                     <div className="flex-1 h-full flex items-center justify-center pl-[10px] text-[0.7rem] text-[#12B76A]">

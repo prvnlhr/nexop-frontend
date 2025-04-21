@@ -216,3 +216,37 @@ export async function editProductVariants(variants: EditVariantPayload[]) {
     throw new Error(`Failed to edit product variants: ${err.message}`);
   }
 }
+
+// new service functions ----------------------------------------------------
+
+// fetchProductVariantsData
+
+
+export async function fetchProductVariantsData(productId: number | string) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/api/admin/products/${productId}/variants`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Fetch Product Variants Data Error:", result.error || result.message);
+      throw new Error(
+        result.error || result.message || "Failed to fetch product variant data"
+      );
+    }
+
+    console.log("Fetch Product Variants Data Success:", result.message);
+    return result.data;
+  } catch (error) {
+    const err = error as Error;
+    console.error("Fetch Product Variants Data Error:", error);
+    throw new Error(`Failed to fetch product variant data: ${err.message}`);
+  }
+}

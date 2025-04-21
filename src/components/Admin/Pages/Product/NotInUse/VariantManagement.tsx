@@ -1,5 +1,5 @@
 import React from "react";
-import VariantsTable from "../VariantsTable";
+import VariantsTable from "./VariantsTable";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { useVariantContext } from "@/context/VariantContext";
 import { Category } from "@/types/categoryTypes";
