@@ -1,10 +1,14 @@
-import { revalidatePathHandler } from "@/lib/revalidation";
 import {
-  CreateVariantPayload,
+  revalidatePathHandler,
+  revalidateTagHandler,
+} from "@/lib/revalidation";
+import { CreateVariantPayload } from "@/types/variantsNewTypes";
+import {
   EditVariantPayload,
   ProcessedVariantPayload,
 } from "@/types/variantType";
-import { uploadToCloudinary } from "@/utils/cloudinaryConfig";
+
+import { deleteImage, uploadToCloudinary } from "@/utils/cloudinaryConfig";
 
 const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -18,9 +22,13 @@ export async function getProductVariants(productId: number | string) {
         headers: {
           "Content-Type": "application/json",
         },
+        next: {
+          tags: ["productVariantsData"],
+        },
       }
     );
     const result = await response.json();
+    console.log(" result:", result.data);
 
     if (!response.ok) {
       console.error("Get Variants Error:", result.error || result.message);
@@ -35,80 +43,6 @@ export async function getProductVariants(productId: number | string) {
     const err = error as Error;
     console.error("Get product's Variants Error:", error);
     throw new Error(`Failed to get product's variants: ${err.message}`);
-  }
-}
-
-// CREATE NEW VARIANTS ---------------------------------------------------------------------------------------
-
-export async function createProductVariants(
-  variantsData: CreateVariantPayload[]
-) {
-  try {
-    // Process each variant in parallel
-    const createPromises = variantsData.map(async (variant) => {
-      // 1. Upload all new images to Cloudinary
-      const uploadResults = await Promise.all(
-        variant.newImages.map((file) => uploadToCloudinary(file))
-      );
-
-      // 2. Map uploaded images to the correct structure
-      const uploadedImages = uploadResults.map((result, index) => ({
-        url: result.secure_url,
-        publicId: result.public_id,
-        order: index, // Use the same order as the files array
-      }));
-
-      // 3. Prepare the final payload for this variant
-      const variantPayload = {
-        productId: variant.productId,
-        sku: variant.sku,
-        price: variant.price,
-        stock: variant.stock,
-        status: variant.status || "ACTIVE",
-        attributes: variant.attributes.map((attr) => ({
-          attributeId: attr.attributeId,
-          optionId: attr.optionId,
-        })),
-        images: uploadedImages,
-      };
-
-      // 4. Call the API to create the variant
-      const response = await fetch(`${BASE_URL}/api/admin/variants`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(variantPayload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Failed to create variant ${variant.sku}: ${
-            errorData.error || errorData.message
-          }`
-        );
-      }
-
-      return await response.json();
-    });
-
-    // Wait for all variants to be processed
-    const results = await Promise.all(createPromises);
-
-    // Combine all results
-    return {
-      variants: results.flatMap((r) => r.data.variants),
-      variantAttributes: results.flatMap((r) => r.data.variantAttributes),
-      variantImages: results.flatMap((r) => r.data.variantImages),
-    };
-  } catch (error) {
-    console.error("Create Variants Error:", error);
-    throw new Error(
-      `Failed to create product variants: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    );
   }
 }
 
@@ -217,11 +151,9 @@ export async function editProductVariants(variants: EditVariantPayload[]) {
   }
 }
 
-// new service functions ----------------------------------------------------
+// NEW service functions ----------------------------------------------------
 
 // fetchProductVariantsData
-
-
 export async function fetchProductVariantsData(productId: number | string) {
   try {
     const response = await fetch(
@@ -236,7 +168,10 @@ export async function fetchProductVariantsData(productId: number | string) {
     const result = await response.json();
 
     if (!response.ok) {
-      console.error("Fetch Product Variants Data Error:", result.error || result.message);
+      console.error(
+        "Fetch Product Variants Data Error:",
+        result.error || result.message
+      );
       throw new Error(
         result.error || result.message || "Failed to fetch product variant data"
       );
@@ -248,5 +183,198 @@ export async function fetchProductVariantsData(productId: number | string) {
     const err = error as Error;
     console.error("Fetch Product Variants Data Error:", error);
     throw new Error(`Failed to fetch product variant data: ${err.message}`);
+  }
+}
+
+// createProductVariants
+export async function createProductVariants(
+  variantsData: CreateVariantPayload[]
+) {
+  try {
+    const createPromises = variantsData.map(async (variant) => {
+      // 1. Upload images to Cloudinary
+      const uploadResults = await Promise.all(
+        variant.newImages.map(async (image) => {
+          const result = await uploadToCloudinary(image.file);
+          return {
+            url: result.secure_url,
+            publicId: result.public_id,
+            order: image.order,
+          };
+        })
+      );
+      // 2. Prepare the payload for the API
+      const variantPayload = {
+        productId: variant.productId,
+        name: variant.name,
+        slug: variant.slug || variant.name.toLowerCase().replace(/\s+/g, "-"), // Fallback slug if empty
+        sku: variant.sku,
+        price: variant.price,
+        stock: variant.stock,
+        status: variant.status || "ACTIVE",
+        attributes: variant.attributes.map((attr) => ({
+          attributeId: attr.attributeId,
+          optionId: attr.optionId,
+        })),
+        images: uploadResults,
+      };
+
+      // 3. Call the API to create the variant
+      const response = await fetch(`${BASE_URL}/api/admin/variants`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(variantPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to create variant ${variant.sku}: ${
+            errorData.error || errorData.message || "Unknown error"
+          }`
+        );
+      }
+
+      return await response.json();
+    });
+
+    const results = await Promise.all(createPromises);
+    await revalidateTagHandler("productVariantsData");
+    console.log("variant generation results:", results);
+  } catch (error) {
+    console.error("Create Variants Error:", error);
+    throw new Error(
+      `Failed to create product variants: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+interface UpdateVariantPayload {
+  id: number;
+  name: string;
+  slug: string;
+  sku: string;
+  price: number;
+  stock: number;
+  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+  attributes: { attributeId: number; optionId: number }[];
+  images: { url: string; publicId?: string; order: number; file?: File }[];
+  deletedPublicIds: string[];
+}
+
+interface ControllerUpdateVariantPayload {
+  id: number;
+  name: string;
+  slug: string;
+  sku: string;
+  price: number;
+  stock: number;
+  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+  attributes: { attributeId: number; optionId: number }[];
+  images: { url: string; publicId: string; order: number }[];
+}
+
+// updateProductVariants
+export async function updateProductVariants(
+  variantsData: UpdateVariantPayload[]
+) {
+  try {
+    // 1. Process all variants: upload new images and delete removed images
+    const variantPayloads: ControllerUpdateVariantPayload[] = await Promise.all(
+      variantsData.map(async (variant) => {
+        // Upload new images to Cloudinary and prepare final images array
+        const finalImages = await Promise.all(
+          variant.images.map(async (image) => {
+            if (image.file) {
+              // New image: upload to Cloudinary
+              const result = await uploadToCloudinary(image.file);
+              return {
+                url: result.secure_url,
+                publicId: result.public_id, // Use Cloudinary's public_id
+                order: image.order,
+              };
+            }
+            // Existing image: keep as is, but warn if publicId looks incorrect
+            if (
+              image.publicId &&
+              !image.publicId.startsWith("nexop/products/")
+            ) {
+              console.warn(
+                `Invalid publicId for existing image: ${image.publicId}`
+              );
+            }
+            return {
+              url: image.url,
+              publicId: image.publicId!, // publicId should exist for db images
+              order: image.order,
+            };
+          })
+        );
+
+        // Delete removed images from Cloudinary
+        if (variant.deletedPublicIds.length > 0) {
+          await Promise.all(
+            variant.deletedPublicIds.map(async (publicId) => {
+              try {
+                await deleteImage(publicId);
+              } catch (err) {
+                console.error(
+                  `Failed to delete Cloudinary image ${publicId}:`,
+                  err
+                );
+              }
+            })
+          );
+        }
+
+        // Prepare payload for the API
+        return {
+          id: variant.id,
+          name: variant.name,
+          slug: variant.slug || variant.name.toLowerCase().replace(/\s+/g, "-"),
+          sku: variant.sku,
+          price: variant.price,
+          stock: variant.stock,
+          status: variant.status || "ACTIVE",
+          attributes: variant.attributes.map((attr) => ({
+            attributeId: attr.attributeId,
+            optionId: attr.optionId,
+          })),
+          images: finalImages,
+        };
+      })
+    );
+
+    // 2. Send a single PATCH request with all payloads
+    const response = await fetch(`${BASE_URL}/api/admin/variants`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(variantPayloads),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || result.message || "Failed to update variants"
+      );
+    }
+
+    await revalidateTagHandler("productVariantsData");
+    console.log("Variant update results:", result);
+    return result; // Returns { message: "Variants updated successfully" }
+  } catch (error) {
+    console.error("Update Variants Error:", error);
+    throw new Error(
+      `Failed to update product variants: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }

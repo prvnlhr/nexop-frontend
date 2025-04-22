@@ -1,35 +1,53 @@
 import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
+import {
   Attribute,
   GeneratedVariant,
   ProductDetails,
+  // ProductVariantData,
   Variant,
   VariantAttribute,
 } from "@/types/variantsNewTypes";
-import { createContext, useContext, useState, ReactNode } from "react";
+
+interface ImageData {
+  url: string;
+  publicId?: string;
+  order: number;
+  source: "client" | "db";
+  file?: File;
+}
 
 interface ColorImageData {
   optionId: number;
   attributeId: number;
   productId: number;
-  files: File[];
-  previews: string[];
+  images: ImageData[];
+  deletedPublicIds?: string[];
 }
 
 interface VariantManagementContextType {
   product: ProductDetails | null;
   attributes: Attribute[];
   variants: Variant[];
+  generatedVariants: GeneratedVariant[];
+  colorImages: { [optionId: number]: ColorImageData };
+  activeColorTab: number | null;
+  editingVariant: Variant | GeneratedVariant | null;
+  hasDuplicates: boolean;
   setProduct: (product: ProductDetails | null) => void;
   setAttributes: (attributes: Attribute[]) => void;
   setVariants: (variants: Variant[]) => void;
+  setGeneratedVariants: (variants: GeneratedVariant[]) => void;
   setActiveColorTab: (activeColorTab: number | null) => void;
-  setEditingVariant: (editingVariant: GeneratedVariant | null) => void;
-  editingVariant: GeneratedVariant | null;
-  generatedVariants: GeneratedVariant[];
-  activeColorTab: number | null;
-  colorImages: { [optionId: number]: ColorImageData };
-  updateVariant: (updatedVariant: GeneratedVariant) => void;
-
+  setEditingVariant: (
+    editingVariant: Variant | GeneratedVariant | null
+  ) => void;
   toggleAttributeOption: (attributeId: number, optionId: number) => void;
   addColorImages: (
     optionId: number,
@@ -37,9 +55,14 @@ interface VariantManagementContextType {
     productId: number,
     files: File[]
   ) => void;
-
   removeColorImage: (optionId: number, index: number) => void;
+  initializeColorImages: (variants: Variant[]) => void;
   generateVariants: () => void;
+  updateVariant: (updatedVariant: Variant | GeneratedVariant) => void;
+  updateDbVariant: (variant: Variant, optionId: number) => Promise<void>;
+  removeGeneratedVariant: (sku: string) => void;
+  isDuplicate: (variant: GeneratedVariant | Variant) => boolean;
+  // resetContext: (data?: ProductVariantData) => void;
 }
 
 const VariantManagementContext = createContext<
@@ -51,23 +74,49 @@ export const VariantManagementProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  //-- USE STATES ------------------------------------------------------------------------------------------------------------------------------
   const [product, setProduct] = useState<ProductDetails | null>(null);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [generatedVariants, setGeneratedVariants] = useState<
+    GeneratedVariant[]
+  >([]);
   const [activeColorTab, setActiveColorTab] = useState<number | null>(null);
   const [colorImages, setColorImages] = useState<{
     [optionId: number]: ColorImageData;
   }>({});
-  const [generatedVariants, setGeneratedVariants] = useState<
-    GeneratedVariant[]
-  >([]);
+  const [editingVariant, setEditingVariant] = useState<
+    Variant | GeneratedVariant | null
+  >(null);
+  const [hasDuplicates, setHasDuplicates] = useState<boolean>(false);
 
-  const [editingVariant, setEditingVariant] = useState<GeneratedVariant | null>(
-    null
-  );
+  const isDuplicate = (variant: GeneratedVariant | Variant) => {
+    const attrs = "attributes" in variant ? variant.attributes : [];
+    const newAttrSet = new Set(
+      attrs.map((attr) => `${attr.attributeId}:${attr.optionId}`)
+    );
+    return variants.some((existing) => {
+      const existingAttrSet = new Set(
+        existing.attributes.map(
+          (attr) => `${attr.attributeId}:${attr.optionId}`
+        )
+      );
+      return (
+        newAttrSet.size === existingAttrSet.size &&
+        [...newAttrSet].every((attr) => existingAttrSet.has(attr))
+      );
+    });
+  };
 
-  //-- HANDLER FUNCTION ------------------------------------------------------------------------------------------------------------------------
+  useEffect(() => {
+    const checkDuplicates = () => {
+      const hasAnyDuplicates = generatedVariants.some((variant) =>
+        isDuplicate(variant)
+      );
+      setHasDuplicates(hasAnyDuplicates);
+    };
+    checkDuplicates();
+  }, [generatedVariants, variants]);
+
   const toggleAttributeOption = (attributeId: number, optionId: number) => {
     setAttributes((prevAttributes) =>
       prevAttributes.map((attribute) => {
@@ -97,20 +146,20 @@ export const VariantManagementProvider = ({
         optionId,
         attributeId,
         productId,
-        files: [],
-        previews: [],
+        images: [],
+        deletedPublicIds: [],
       };
-      const newFiles = [...existing.files, ...files];
-      const newPreviews = [
-        ...existing.previews,
-        ...files.map((file) => URL.createObjectURL(file)),
-      ];
+      const newImages: ImageData[] = files.map((file, index) => ({
+        url: URL.createObjectURL(file),
+        order: existing.images.length + index,
+        source: "client",
+        file,
+      }));
       return {
         ...prev,
         [optionId]: {
           ...existing,
-          files: newFiles,
-          previews: newPreviews,
+          images: [...existing.images, ...newImages],
         },
       };
     });
@@ -121,31 +170,73 @@ export const VariantManagementProvider = ({
       const existing = prev[optionId];
       if (!existing) return prev;
 
-      URL.revokeObjectURL(existing.previews[index]);
+      const imageToRemove = existing.images[index];
+      if (imageToRemove.source === "client" && imageToRemove.file) {
+        URL.revokeObjectURL(imageToRemove.url);
+      }
 
-      const newFiles = existing.files.filter((_, i) => i !== index);
-      const newPreviews = existing.previews.filter((_, i) => i !== index);
+      const newImages = existing.images.filter((_, i) => i !== index);
+      const deletedPublicIds =
+        imageToRemove.source === "db" && imageToRemove.publicId
+          ? [...(existing.deletedPublicIds || []), imageToRemove.publicId]
+          : existing.deletedPublicIds;
+
       return {
         ...prev,
         [optionId]: {
           ...existing,
-          files: newFiles,
-          previews: newPreviews,
+          images: newImages,
+          deletedPublicIds,
         },
       };
     });
   };
 
+  const initializeColorImages = useCallback((variants: Variant[]) => {
+    setColorImages((prev) => {
+      const newColorImages: { [optionId: number]: ColorImageData } = {
+        ...prev,
+      };
+      variants.forEach((variant) => {
+        const colorAttr = variant.attributes.find(
+          (attr) => attr.attributeName.toLowerCase() === "color"
+        );
+        if (colorAttr && variant.images.length > 0) {
+          const optionId = colorAttr.optionId;
+          // Only update if not already initialized for this optionId
+          if (
+            !newColorImages[optionId] ||
+            newColorImages[optionId].images.every((img) => img.source !== "db")
+          ) {
+            newColorImages[optionId] = {
+              optionId,
+              attributeId: colorAttr.attributeId,
+              productId: variant.id!,
+              images: variant.images
+                .map((img) => ({
+                  url: img.url,
+                  publicId: img.publicId,
+                  order: img.order,
+                  source: "db" as const,
+                }))
+                .sort((a, b) => a.order - b.order),
+              deletedPublicIds: [],
+            };
+          }
+        }
+      });
+      return newColorImages;
+    });
+  }, []);
+
   const generateVariants = () => {
     if (!product) return;
 
-    // Filter attributes with selected options
     const selectedAttributes = attributes.filter((attr) =>
       attr.options.some((opt) => opt.selected)
     );
     if (selectedAttributes.length === 0) return;
 
-    // Generate all combinations
     const combinations = selectedAttributes.reduce((acc, attr) => {
       const selectedOptions = attr.options.filter((opt) => opt.selected);
       const newCombinations: VariantAttribute[][] = [];
@@ -167,15 +258,12 @@ export const VariantManagementProvider = ({
       return newCombinations;
     }, [] as VariantAttribute[][]);
 
-    // Create descriptive SKUs and variants
     const newVariants: GeneratedVariant[] = combinations.map((combo) => {
-      // Generate SKU: ProductName-OptionValue1-OptionValue2-...
       const skuParts = [
         product.name.replace(/\s+/g, "-"),
         ...combo.map((attr) => attr.optionValue.replace(/\s+/g, "-")),
       ];
       const sku = skuParts.join("-").toLowerCase();
-
       return {
         sku,
         name: product.name,
@@ -190,32 +278,115 @@ export const VariantManagementProvider = ({
     setGeneratedVariants(newVariants);
   };
 
-  const updateVariant = (updatedVariant: GeneratedVariant) => {
+  const updateVariant = (updatedVariant: Variant | GeneratedVariant) => {
+    if ("id" in updatedVariant) {
+      setVariants((prevVariants) =>
+        prevVariants.map((variant) =>
+          variant.id === updatedVariant.id
+            ? { ...variant, ...updatedVariant }
+            : variant
+        )
+      );
+    } else {
+      setGeneratedVariants((prevVariants) =>
+        prevVariants.map((variant) =>
+          variant.sku === updatedVariant.sku ? updatedVariant : variant
+        )
+      );
+    }
+  };
+
+  const updateDbVariant = async (variant: Variant, optionId: number) => {
+    try {
+      const colorImagesData = colorImages[optionId] || {
+        images: [],
+        deletedPublicIds: [],
+      };
+      const newImages = colorImagesData.images
+        .filter((img) => img.source === "client" && img.file)
+        .map((img, index) => ({ file: img.file!, order: index }));
+      const existingImages = colorImagesData.images
+        .filter((img) => img.source === "db")
+        .map((img) => ({
+          url: img.url,
+          publicId: img.publicId!,
+          order: img.order,
+        }));
+
+      setVariants((prevVariants) =>
+        prevVariants.map((v) =>
+          v.id === variant.id
+            ? {
+                ...v,
+                images: [
+                  ...existingImages,
+                  ...newImages.map((img, index) => ({
+                    url: img.file!.name, // Placeholder
+                    publicId: `temp-${index}`,
+                    order: existingImages.length + index,
+                  })),
+                ],
+              }
+            : v
+        )
+      );
+    } catch (error) {
+      throw new Error(
+        `Failed to update variant: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const removeGeneratedVariant = (sku: string) => {
     setGeneratedVariants((prevVariants) =>
-      prevVariants.map((variant) =>
-        variant.sku === updatedVariant.sku ? updatedVariant : variant
-      )
+      prevVariants.filter((variant) => variant.sku !== sku)
     );
   };
+
+  // const resetContext = useCallback(
+  //   (data?: ProductVariantData) => {
+  //     if (data) {
+  //       setProduct(data.product);
+  //       setAttributes(data.attributes);
+  //       setVariants(data.variants);
+  //       initializeColorImages(data.variants);
+  //     } else {
+  //       setProduct(null);
+  //       setAttributes([]);
+  //       setVariants([]);
+  //       setColorImages({});
+  //     }
+  //   },
+  //   [initializeColorImages]
+  // );
 
   const value: VariantManagementContextType = {
     product,
     attributes,
     variants,
+    generatedVariants,
+    colorImages,
+    activeColorTab,
+    editingVariant,
+    hasDuplicates,
     setProduct,
     setAttributes,
     setVariants,
+    setGeneratedVariants,
+    setActiveColorTab,
+    setEditingVariant,
     toggleAttributeOption,
-    colorImages,
     addColorImages,
     removeColorImage,
-    setActiveColorTab,
-    activeColorTab,
-    generatedVariants,
+    initializeColorImages,
     generateVariants,
-    editingVariant,
-    setEditingVariant,
     updateVariant,
+    updateDbVariant,
+    removeGeneratedVariant,
+    isDuplicate,
+    // resetContext,
   };
 
   return (

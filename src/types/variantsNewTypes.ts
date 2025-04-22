@@ -37,6 +37,7 @@ export interface Variant {
   stock: number;
   status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
   attributes: VariantAttribute[];
+  images: { url: string; publicId: string; order: number }[];
 }
 
 export interface ProductVariantData {
@@ -53,4 +54,16 @@ export interface GeneratedVariant {
   stock: number;
   status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
   attributes: VariantAttribute[];
+}
+
+export interface CreateVariantPayload {
+  productId: number;
+  name: string;
+  slug: string;
+  sku: string;
+  price: number;
+  stock: number;
+  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+  attributes: { attributeId: number; optionId: number }[];
+  newImages: { file: File; order: number }[];
 }

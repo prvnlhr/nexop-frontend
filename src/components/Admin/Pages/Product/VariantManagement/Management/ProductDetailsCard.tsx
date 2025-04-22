@@ -17,7 +17,9 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
             <p className="text-[0.9rem] font-medium">NAME</p>
           </div>
           <div className="w-full h-[40px] flex items-center border-b border-[#D0D5DD]">
-            <p className="text-[0.8rem] font-medium">{product.name}</p>
+            <p className="text-[0.8rem] text-[#A4ADBB] font-medium">
+              {product.name}
+            </p>
           </div>
         </div>
         <div className="w-full h-full">
@@ -25,7 +27,9 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
             <p className="text-[0.9rem] font-medium">BRAND</p>
           </div>
           <div className="w-full h-[40px] flex items-center border-b border-[#D0D5DD]">
-            <p className="text-[0.8rem] font-medium">{product.brand}</p>
+            <p className="text-[0.8rem] text-[#A4ADBB] font-medium">
+              {product.brand}
+            </p>
           </div>
         </div>
         <div className="w-full h-full">
@@ -33,7 +37,9 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
             <p className="text-[0.9rem] font-medium">CATEGORY</p>
           </div>
           <div className="w-full h-[40px] flex items-center border-b border-[#D0D5DD]">
-            <p className="text-[0.8rem] font-medium">{product.categoryName}</p>
+            <p className="text-[0.8rem] text-[#A4ADBB] font-medium">
+              {product.categoryName}
+            </p>
           </div>
         </div>
         <div className="w-full h-full">
@@ -41,7 +47,9 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
             <p className="text-[0.9rem] font-medium">BASE PRICE (₹)</p>
           </div>
           <div className="w-full h-[40px] flex items-center border-b border-[#D0D5DD]">
-            <p className="text-[0.8rem] font-medium">{product.basePrice}</p>
+            <p className="text-[0.8rem] text-[#A4ADBB] font-medium">
+              {product.basePrice}
+            </p>
           </div>
         </div>
       </div>
