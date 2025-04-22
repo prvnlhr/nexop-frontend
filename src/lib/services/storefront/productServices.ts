@@ -1,14 +1,12 @@
-import { ProductsResponse } from "@/types/storefront/productTypes";
+// import { ProductsResponse } from "@/types/storefront/productTypes";
 
 const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 // Service Function
-export async function fetchProductsByCategory(
-  categoryId: string
-): Promise<ProductsResponse> {
+export async function fetchProductsByCategory(categorySlug: string) {
   try {
     const response = await fetch(
-      `${BASE_URL}/api/storefront/products/${categoryId}`,
+      `${BASE_URL}/api/storefront/products/${categorySlug}`,
       {
         method: "GET",
         headers: {
@@ -31,7 +29,7 @@ export async function fetchProductsByCategory(
       throw new Error("Invalid response format");
     }
 
-    return result.data as ProductsResponse;
+    return result.data;
   } catch (error) {
     console.error("Fetch Products Error:", error);
     throw error instanceof Error
@@ -40,19 +38,47 @@ export async function fetchProductsByCategory(
   }
 }
 
-export async function getProductById(
-  productId: string,
-  attributeId?: string,
-  optionId?: string
+// ------------------------------------------------------------------------------------------
+
+// interface ProductDetailsResponse {
+//   product: {
+//     id: number;
+//     name: string;
+//     slug: string;
+//     description: string | null;
+//     brand: string;
+//     basePrice: number;
+//     category: { id: number; name: string; slug: string };
+//     images: { url: string; isThumbnail: boolean }[];
+//   };
+//   variant?: {
+//     id: number;
+//     name: string;
+//     price: number;
+//     stock: number;
+//     images: { url: string }[];
+//   };
+//   attributes: {
+//     id: number;
+//     name: string;
+//     options: { id: number; value: string; active: boolean }[];
+//   }[];
+// }
+
+export async function getProductDetails(
+  categorySlug: string,
+  productSlug: string,
+  queryParams: { [key: string]: string } = {}
 ) {
   try {
     const url = new URL(
-      `${BASE_URL}/api/storefront/products/details/${productId}`
+      `${BASE_URL}/api/storefront/products/details/${categorySlug}/${productSlug}`
     );
-    if (attributeId && optionId) {
-      url.searchParams.append("attributeId", attributeId);
-      url.searchParams.append("optionId", optionId);
-    }
+
+    // Add query parameters
+    Object.entries(queryParams).forEach(([key, value]) => {
+      url.searchParams.append(key, value);
+    });
 
     const response = await fetch(url.toString(), {
       method: "GET",
@@ -71,15 +97,9 @@ export async function getProductById(
     }
 
     const result = await response.json();
-
-    // Type guard for valid response
-    if (!result.data || !result.data.id) {
-      throw new Error("Invalid product details response format");
-    }
-
     return result.data;
   } catch (error) {
-    console.error("Fetch Product By ID Error:", error);
+    console.error("Fetch Product Details Error:", error);
     throw error instanceof Error
       ? error
       : new Error("Failed to fetch product details");

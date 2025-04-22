@@ -1,11 +1,11 @@
-import { Product } from "@/types/storefront/productTypes";
+import { FormattedProduct } from "@/types/storefront/productPageListType";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
 interface ProductListProps {
-  products: Product[];
+  products: FormattedProduct[];
 }
 const ProductList: React.FC<ProductListProps> = ({ products }) => {
   return (
@@ -16,7 +16,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
       >
         {products.map((prod, pId) => (
           <Link
-            href={`products/${prod.id}`}
+            href={`${prod.category?.slug}/${prod.slug}`}
             key={pId}
             className="w-auto h-auto mb-[20px] flex flex-col self-start bg-white 
             shadow-[0px_3px_5px_rgba(0,0,0,0.04)]
@@ -33,6 +33,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                     src={prod.thumbnail}
                     alt={prod.name}
                     sizes="100%"
+                    className="object-contain"
                   />
                 )}
               </div>

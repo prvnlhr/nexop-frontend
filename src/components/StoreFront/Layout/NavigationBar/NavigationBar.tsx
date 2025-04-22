@@ -99,9 +99,10 @@ const NavigationBar = () => {
                   >
                     <div className="w-full h-[40px] flex items-center">
                       <Link
-                        href={`/shop/products/?category=${encodeURIComponent(
-                          subcategory.slug
-                        )}&categoryId=${subcategory.id}`}
+                        // href={`/shop/products/?category=${encodeURIComponent(
+                        //   subcategory.slug
+                        // )}&categoryId=${subcategory.id}`}
+                        href={`/shop/products/${subcategory.slug}`}
                         className="w-auto h-[auto] py-[5px] flex items-center"
                       >
                         <div className="w-auto h-auto flex items-center justify-center">
@@ -117,9 +118,10 @@ const NavigationBar = () => {
                     <div className="w-full h-[auto] mt-[2px]">
                       {subcategory.children.map((item) => (
                         <Link
-                          href={`/shop/products/?category=${encodeURIComponent(
-                            item.slug
-                          )}&categoryId=${item.id}`}
+                          // href={`/shop/products/?category=${encodeURIComponent(
+                          //   item.slug
+                          // )}&categoryId=${item.id}`}
+                          href={`/shop/products/${item.slug}`}
                           onClick={() =>
                             handleOptionClicked(
                               category.slug,

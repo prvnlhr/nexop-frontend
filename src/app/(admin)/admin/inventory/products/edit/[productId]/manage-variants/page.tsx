@@ -9,7 +9,7 @@ const page = async ({ params }: { params: Params }) => {
   const { productId } = await params;
   const productVariantsData: ProductVariantData =
     await fetchProductVariantsData(productId);
-  console.log(" productVariantsData:", productVariantsData);
+  // console.log(" productVariantsData:", productVariantsData);
   return <ManageVariantsPage productVariantsData={productVariantsData} />;
 };
 

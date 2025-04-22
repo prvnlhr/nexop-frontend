@@ -1,8 +1,8 @@
 "use client";
-import { ProductsResponse } from "@/types/storefront/productTypes";
 import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import ProductList from "./ProductList";
+import { ProductsResponse } from "@/types/storefront/productPageListType";
 
 interface ProductPageProps {
   data: ProductsResponse;
@@ -13,28 +13,18 @@ const ProductPage: React.FC<ProductPageProps> = ({ data }) => {
   const toggleSidebar = () => {
     setSidebarOpen(!showSidebar);
   };
-
-  let products: React.ComponentProps<typeof ProductList>["products"] = [];
-  let sidebarContent: React.ComponentProps<typeof Sidebar> = {
-    type: "empty",
-    content: null,
+  const sidebarProps = {
+    attributes:
+      data.type === "PRODUCTS_WITH_ATTRIBUTES" ? data.attributes : undefined,
+    categories:
+      data.type === "PRODUCTS_WITH_SUBCATEGORIES" ? data.categories : undefined,
   };
 
-  if (data.type === "PRODUCTS_WITH_ATTRIBUTES") {
-    products = data.products;
-    sidebarContent = {
-      type: "attributes",
-      content: data.attributes,
-      currentCategory: data.category,
-    };
-  } else if (data.type === "PRODUCTS_WITH_SUBCATEGORIES") {
-    products = data.products;
-    sidebarContent = {
-      type: "categories",
-      content: data.categories,
-      currentCategory: data.parentCategory,
-    };
-  }
+  const products =
+    data.type === "PRODUCTS_WITH_ATTRIBUTES" ||
+    data.type === "PRODUCTS_WITH_SUBCATEGORIES"
+      ? data.products
+      : [];
 
   return (
     <div className="w-full h-full overflow-hidden relative">
@@ -47,7 +37,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ data }) => {
           className="w-1/2 lg:w-[20%] h-full relative flex bg-[#F3F7FA] border-r border-black/10"
           onClick={toggleSidebar}
         >
-          <Sidebar {...sidebarContent} />
+          <Sidebar {...sidebarProps} />
         </div>
 
         <div className="w-1/2 lg:w-[80%] h-[100%]" onClick={toggleSidebar}>
