@@ -9,7 +9,6 @@ interface AttributesTableProps {
 
 const AttributesTable: React.FC<AttributesTableProps> = ({ attributes }) => {
   const columns = ["Name", "Category", "Options Count", "Action"];
-  console.log(attributes);
 
   return (
     <div

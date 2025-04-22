@@ -82,6 +82,7 @@ input:-webkit-autofill:active {
   background-color: transparent;
 }
 
+
 .hide-scrollbar {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */

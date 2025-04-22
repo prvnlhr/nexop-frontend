@@ -1,5 +1,4 @@
-// import { getProductVariants } from "@/lib/services/admin/variantServices";
-import ManageVariantsPage from "@/components/Admin/Pages/Product/VariantManagement/Pages/ManageVariantsPage";
+import GenerateVariantsPage from "@/components/Admin/Pages/Product/VariantManagement/Pages/GenerateVariantsPage";
 import { fetchProductVariantsData } from "@/lib/services/admin/variantServices";
 import { ProductVariantData } from "@/types/variantsNewTypes";
 import React from "react";
@@ -10,7 +9,7 @@ const page = async ({ params }: { params: Params }) => {
   const productVariantsData: ProductVariantData =
     await fetchProductVariantsData(productId);
   console.log(" productVariantsData:", productVariantsData);
-  return <ManageVariantsPage productVariantsData={productVariantsData} />;
+  return <GenerateVariantsPage productVariantsData={productVariantsData} />;
 };
 
 export default page;
