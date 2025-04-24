@@ -9,7 +9,7 @@ const VariantManagementLayout = ({
   return (
     <div className="w-full h-full border-red-500 p-[20px]">
       <div className="w-full h-full flex flex-col">
-        <VariantsNavigationBar productId="12" />
+        <VariantsNavigationBar />
         <div className="w-full h-[calc(100%-40px)]">{children}</div>
       </div>
     </div>

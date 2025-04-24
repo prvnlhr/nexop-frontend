@@ -1,6 +1,7 @@
+"use client";
 import AppLogo from "@/components/Common/AppLogo";
 import React from "react";
-import UserBadge from "./UserBadge/UserBadge";
+import UserBadge from "../../../Admin/Common/UserBadge/UserBadge";
 import Link from "next/link";
 
 const MainHeader = () => {

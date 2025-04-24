@@ -166,6 +166,7 @@ export async function fetchProductVariantsData(productId: number | string) {
       }
     );
     const result = await response.json();
+    console.log(" result:", result);
 
     if (!response.ok) {
       console.error(

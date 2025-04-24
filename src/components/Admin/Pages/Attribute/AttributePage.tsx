@@ -1,7 +1,7 @@
 import Link from "next/link";
 import React from "react";
 import AttributesTable from "./AttributesTable";
-import {  AttributeItem } from "@/types/attributeTypes";
+import { AttributeItem } from "@/types/attributeTypes";
 
 interface AttributePageProps {
   attributes: AttributeItem[];
@@ -19,7 +19,7 @@ const AttributePage: React.FC<AttributePageProps> = ({ attributes }) => {
         </Link>
       </div>
       <div className="w-full h-[calc(100%-50px)] flex items-start">
-        <AttributesTable attributes={attributes}/>
+        <AttributesTable attributes={attributes} />
       </div>
     </div>
   );

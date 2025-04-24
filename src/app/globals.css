@@ -50,7 +50,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: linear-gradient(180deg, #e4f0ff -37.08%, #ffffff 100%);
+    /* --background: linear-gradient(180deg, #e4f0ff -37.08%, #ffffff 100%); */
+    /* --background: #ffffff; */
+    --background: #fbfafe;
     --foreground: #1c3553;
   }
 }
@@ -81,7 +83,6 @@ input:-webkit-autofill:active {
   caret-color: #1c3553;
   background-color: transparent;
 }
-
 
 .hide-scrollbar {
   scrollbar-width: none; /* Firefox */

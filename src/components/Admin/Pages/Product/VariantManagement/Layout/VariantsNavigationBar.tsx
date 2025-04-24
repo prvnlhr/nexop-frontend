@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import React from "react";
 
-const VariantsNavigationBar = ({ productId }: { productId: string }) => {
+const VariantsNavigationBar = () => {
   const pathname = usePathname();
+  const { productId } = useParams();
 
   const basePath = `/admin/inventory/products/edit/${productId}/manage-variants`;
 

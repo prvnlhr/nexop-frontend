@@ -55,7 +55,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                 </p>
               </div>
 
-              <div className="w-full h-auto flex items-center">
+              {/* <div className="w-full h-auto flex items-center">
                 <div className="w-auto h-[20px] flex items-center justify-center bg-[#EFF1F3] rounded">
                   <div className="h-full aspect-square flex items-center justify-center">
                     <Icon
@@ -67,7 +67,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                     4.5
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </Link>
         ))}

@@ -20,7 +20,7 @@ const page = async ({
     productFiltersParams
   );
 
-  console.log(" productDetails:", productDetails);
+  // console.log(" productDetails:", productDetails);
   return <ProductDetailsPage productDetails={productDetails} />;
 };
 

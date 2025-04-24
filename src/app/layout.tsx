@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-
+import { ToastProvider } from "@/context/ToastContext";
+import { Toaster } from "sonner";
+import DynamicIcon from "@/components/Common/Toast/DynamicIcon";
+import LoadingSpinner from "@/components/Common/LoadingSpinner";
 const lufga = localFont({
   src: [
     {
@@ -111,7 +114,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${lufga.variable} antialiased`}>{children}</body>
+      <body className={`${lufga.variable} antialiased`}>
+        <ToastProvider>{children}</ToastProvider>
+        <Toaster
+          position="top-right"
+          expand={false}
+          richColors
+          closeButton={true}
+          duration={4000}
+          style={{
+            fontFamily: "Lufga",
+          }}
+          toastOptions={{
+            style: {
+              fontFamily: "Lufga",
+              ["--toast-icon-color" as string]: undefined,
+            },
+          }}
+          icons={{
+            success: <DynamicIcon iconType="success" defaultColor="#039855" />,
+            error: <DynamicIcon iconType="error" defaultColor="#D92D20" />,
+            info: <DynamicIcon iconType="info" defaultColor="#1570EF" />,
+            loading: <LoadingSpinner />,
+          }}
+        />
+      </body>
     </html>
   );
 }

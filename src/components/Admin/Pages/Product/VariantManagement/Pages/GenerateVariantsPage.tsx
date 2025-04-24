@@ -55,7 +55,6 @@ const GenerateVariantsPage: React.FC<GenerateVariantsPageProps> = ({
     initializeColorImages(variants);
   }, [variants, initializeColorImages]);
 
-  
   const handleSaveVariants = async () => {
     if (hasDuplicates) {
       setError("Please remove all duplicate variants before saving.");

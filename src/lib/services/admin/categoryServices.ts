@@ -29,7 +29,7 @@ export async function getCategoryById(categoryId: number) {
       );
     }
 
-    console.log(result.data);
+    // console.log(result.data);
     console.log("Get Category Success:", result.message);
     return result.data;
   } catch (error) {

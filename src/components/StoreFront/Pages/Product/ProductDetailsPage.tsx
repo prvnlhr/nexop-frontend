@@ -6,6 +6,8 @@ import {
   ProductDetailsData,
 } from "@/types/storefront/productPageListType";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import Link from "next/link";
 
 interface ProductDetailsPageProps {
   productDetails: ProductDetailsData;
@@ -130,9 +132,51 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                 />
               ))}
             </div>
+
+            <div className="w-full h-[auto] flex flex-col my-[15px]">
+              <div className="w-full h-[30px] flex items-center">
+                <p className="text-[0.8rem] font-medium whitespace-nowrap">
+                  Quantity
+                </p>
+              </div>
+              <div className="w-full h-[auto] min-h-[40px] flex items-center p-[2px]">
+                <div className="w-auto h-[40px] flex p-[2px] border border-black/10">
+                  <button className="h-full aspect-square flex items-center justify-center cursor-pointer">
+                    <Icon
+                      icon="stash:minus-solid"
+                      className="w-[40%] h-[40%]"
+                    />
+                  </button>
+                  <div className="h-full aspect-square flex items-center justify-center text-[0.7rem]">
+                    01
+                  </div>
+                  <button className="h-full aspect-square flex items-center justify-center cursor-pointer">
+                    <Icon
+                      icon="majesticons:plus-line"
+                      className="w-[40%] h-[40%]"
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full h-[auto] grid grid-cols-[auto_auto] my-[20px]">
+              <Link
+                href={"/shop/cart"}
+                className="md:w-[80%] h-[50px] flex items-center justify-center border border-black/10"
+              >
+                <p className="text-[0.8rem]">Add to cart</p>
+              </Link>
+              <Link
+                href={"/shop/checkout"}
+                className="md:w-[80%] h-[50px] flex items-center justify-center  bg-[#444444] border border-black/10"
+              >
+                <p className="text-[0.8rem] text-[white]">Buy it now</p>
+              </Link>
+            </div>
             {/* PRODUCT DESCRIPTION */}
             <div className="w-full h-[auto] flex flex-col my-[15px] border-red-500">
-              <div className="w-full h-[40px] flex items-center">
+              <div className="w-full h-[50px] flex items-center">
                 <p className="text-[0.8rem] font-medium">Description</p>
               </div>
               <div className="w-full h-[calc(100%-40px)] flex items-center">

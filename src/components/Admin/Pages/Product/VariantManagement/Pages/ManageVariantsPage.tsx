@@ -122,7 +122,7 @@ const ManageVariantsPage: React.FC<ManageVariantsPageProps> = ({
         };
       });
 
-      console.log("payloads", payloads);
+      // console.log("payloads", payloads);
       // return;
       const res = await updateProductVariants(payloads);
       console.log(" res:", res);

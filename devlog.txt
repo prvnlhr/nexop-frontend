@@ -1400,6 +1400,1366 @@ we dont need any variant only the base product.
 
 
 
+I have a existing payment flow setup in one of my old project.
+
+In my next project i want the below flow,
+
+1. User fills the form with address and other stuff
+2. User clicks checkout button
+3. Takes to payment form
+4. enters payment details like card no, cvv,etcc.
+5. clicks pay -> button shows spinner
+6. if success redirects to confirm order page else shows the error.
+
+
+old implementation was for a cab booking app.
+Now i want for Eccommerce app
+
+
+"use client";
+import { PaymentController } from "@/components/Payments/PaymentController";
+import { useToast } from "@/context/ToastContext";
+import { driverRideStatus } from "@/utils/rideUtils";
+import { createClient } from "@/utils/supabase/client";
+import { useEffect, useRef, useState } from "react";
+import { createToastInfo, getCurrentTime } from "@/utils/rider/rideStatusUtils";
+import { getStepsCompleted } from "@/utils/rider/rideStatusUtils";
+import { finishedRide } from "@/lib/services/rider/ride/rideServices";
+import { RiderRideResponse } from "@/types/rideTypes";
+import { useUrlParams } from "@/hooks/useUrlParams";
+
+interface RideStatusProps {
+  ongoingRide: RiderRideResponse | null;
+}
+
+const RideStatus: React.FC<RideStatusProps> = ({ ongoingRide }) => {
+  const { setParams } = useUrlParams();
+  // useEffect(() => {
+  //   setParams({ driver: "26.2859,73.0527" });
+  // }, []);
+
+  const supabase = createClient();
+  const { showToast } = useToast();
+  const toastIdRef = useRef<string | number>("");
+
+  const [rideStatusData, setRideStatusData] = useState(ongoingRide);
+  const [stepsCompleted, setStepsCompleted] = useState(
+    getStepsCompleted(ongoingRide?.status)
+  );
+
+  useEffect(() => {
+    setStepsCompleted(getStepsCompleted(ongoingRide?.status));
+    setRideStatusData(ongoingRide);
+  }, [ongoingRide]);
+
+  useEffect(() => {
+    if (!ongoingRide?.id) return;
+
+    setParams({
+      src: `${ongoingRide.pickup_location.lat},${ongoingRide.pickup_location.lng}`,
+      dest: `${ongoingRide.dropoff_location.lat},${ongoingRide.dropoff_location.lng}`,
+      driver_location: `${ongoingRide.driver_details.location.lat},${ongoingRide.driver_details.location.lng}`,
+    });
+
+    const channel = supabase
+      .channel(`rides_new_rider_ongoing_${ongoingRide.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rides_new",
+          filter: `id=eq.${ongoingRide.id}`,
+        },
+        (payload) => {
+          const updatedRide = payload.new as RiderRideResponse;
+          const newStatus = updatedRide.status;
+          const toastInfo = createToastInfo(newStatus);
+
+          const newCoords = `${updatedRide.driver_details.location.lat},${updatedRide.driver_details.location.lng}`;
+          setParams({ driver: newCoords });
+
+          setRideStatusData(updatedRide);
+          setStepsCompleted(getStepsCompleted(updatedRide.status));
+
+          if (toastInfo) {
+            if (toastIdRef.current) {
+              // Update existing toast
+              showToast({
+                type: "info",
+                title: `${toastInfo.title} - ${getCurrentTime()}`,
+                description: toastInfo.desc,
+                toastId: toastIdRef.current,
+                persistent: true,
+                showCloseButton: true,
+                style: {
+                  ["--toast-icon-color" as string]: toastInfo.color,
+                  borderColor: toastInfo.borderColor,
+                  color: toastInfo.color,
+                  background: toastInfo.background,
+                },
+              });
+            } else {
+              // Create new toast and store its ID
+              const newToastId = showToast({
+                type: "info",
+                title: `${toastInfo.title} - ${getCurrentTime()}`,
+                description: toastInfo.desc,
+                persistent: true,
+                showCloseButton: true,
+                style: {
+                  ["--toast-icon-color" as string]: toastInfo.iconColor,
+                  borderColor: toastInfo.borderColor,
+                  color: toastInfo.color,
+                  background: toastInfo.background,
+                },
+              });
+              toastIdRef.current = newToastId;
+            }
+          }
+
+          // Clear toast when ride is completed
+          if (
+            newStatus === "TRIP_ENDED" ||
+            newStatus === "COMPLETED" ||
+            newStatus === "CANCELLED"
+          ) {
+            // setToastId("");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ongoingRide?.id, supabase, showToast, setParams]);
+
+  const handlePaymentSuccess = async () => {
+    console.log("Payment succeeded!");
+    await finishedRide(ongoingRide?.id);
+  };
+
+  return (
+    <div
+      className="w-[100%] md:w-[60%] h-[400px]
+      border-red-500
+      mt-[20px]"
+    >
+      <div className="w-full h-[40px] px-[15px] flex items-center">
+        <p className="text-[0.8rem] text-[#B5E4FC]">LIVE TRACKING</p>
+      </div>
+      <div className="w-full flex-1 flex flex-col items-start justify-start px-[15px] py-[15px]">
+        {driverRideStatus.map((rStatus, rStatusIndx) => (
+          <div className="w-auto h-auto flex  border-red-600" key={rStatusIndx}>
+            <div className="w-[15px] h-auto flex flex-col items-center">
+              <div
+                className={`w-full aspect-square flex items-center justify-center border ${stepsCompleted >= rStatusIndx + 1 ? "border-white" : "border-[#454849]"} rounded-full`}
+              >
+                <div
+                  className={`w-[80%] aspect-square rounded-full border-2 ${stepsCompleted >= rStatusIndx + 1 ? rStatus.border : "border-[#454849]"} `}
+                ></div>
+              </div>
+              <div
+                className={`w-[1px]  flex-1 ${stepsCompleted >= rStatusIndx + 1 ? "bg-white" : "bg-[#454849]"}`}
+              ></div>
+            </div>
+            <div className="w-auto h-auto flex flex-col pb-[20px]">
+              <p
+                className={`text-[1rem] font-normal ml-[20px] ${stepsCompleted >= rStatusIndx + 1 ? "text-white" : "text-[#454849]"}`}
+              >
+                {rStatus.label1}
+              </p>
+              <p
+                className={`text-[0.8rem] font-light ml-[20px] ${stepsCompleted >= rStatusIndx + 1 ? "text-white" : "text-[#454849]"}`}
+              >
+                {rStatus.label2}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="w-[100%] h-auto flex items-center justify-start border-green-500 md:p-[5px]">
+        {rideStatusData?.status === "TRIP_ENDED" && (
+          <PaymentController
+            amount={rideStatusData.fare}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default RideStatus;
+
+
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { Elements } from "@stripe/react-stripe-js";
+import { StripePaymentForm } from "./StripePaymentForm";
+import { loadStripe } from "@stripe/stripe-js";
+import { paymentInitiate } from "@/lib/services/payment/paymentServices";
+import LoadingSpinner from "../Common/Spinner/LoadingSpinner";
+import { useToast } from "@/context/ToastContext"; // Import your toast context
+
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
+
+interface PaymentControllerProps {
+  amount: number;
+  onPaymentSuccess: () => void;
+}
+
+export const PaymentController = ({
+  amount,
+  onPaymentSuccess,
+}: PaymentControllerProps) => {
+  const router = useRouter();
+  const { showToast, dismissToast } = useToast(); // Get toast function
+  const [showForm, setShowForm] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [initiatingForm, setInitiatingForm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const toastIdRef = useRef<string | number>("");
+
+  const handlePaymentInitiated = async () => {
+    setInitiatingForm(true);
+    try {
+      const response = await paymentInitiate(amount);
+      const { clientSecret } = response;
+      setClientSecret(clientSecret);
+      setShowForm(true);
+    } catch (error) {
+      console.error("Error creating payment intent:", error);
+    } finally {
+      setInitiatingForm(false);
+    }
+  };
+
+  const handlePaymentSuccess = async () => {
+    setShowForm(false);
+    setIsProcessing(true);
+
+    // Show success toast
+    const toastId = showToast({
+      type: "loading",
+      title: "Payment Successful",
+      description: "Redirecting to your trip...",
+      persistent: false,
+      duration: 3000,
+      showCloseButton: true,
+      style: {
+        background: "#ECFDF5",
+        color: "#065F46",
+        borderColor: "#A7F3D0",
+        iconColor: "#A7F3D0",
+      },
+    });
+
+    toastIdRef.current = toastId;
+
+    try {
+      // 1.Call finish ride which make api request to backend to complete the payment
+      onPaymentSuccess();
+
+      // 2. Wait for 3 secs
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // 3. dismiss the toast
+      dismissToast(toastIdRef.current);
+
+      // 4. redirect
+      router.push("/user/trip/book-ride");
+    } catch (error) {
+      console.error("Error completing ride:", error);
+      showToast({
+        type: "error",
+        title: "Error",
+        description: "Could not complete ride",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setClientSecret("");
+  };
+
+  return (
+    <div className="w-[100%] h-auto flex border-red-500 md:p-[5px]">
+      {!showForm ? (
+        <button
+          onClick={handlePaymentInitiated}
+          disabled={isProcessing}
+          className={`
+           w-full h-[40px] flex items-center justify-center bg-[#B5E4FC] cursor-pointer
+           border border-[#3C3C3C]
+           rounded
+           hover:bg-[#E0F2FE] hover:ring-1
+           transition-colors duration-200
+           ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}
+       `}
+        >
+          {initiatingForm || isProcessing ? (
+            <LoadingSpinner />
+          ) : (
+            <p className="font-medium text-[0.9rem] text-black">
+              Make Payment INR - ₹{amount}
+            </p>
+          )}
+        </button>
+      ) : clientSecret ? (
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret,
+            appearance: {
+              theme: "stripe",
+              variables: {
+                borderRadius: "5px 5px 5px 5px",
+                colorPrimary: "#B5E4FC",
+                colorBackground: "#202325",
+                colorText: "#ffffff",
+                colorDanger: "#df1b41",
+                fontFamily: "Lufga, system-ui, sans-serif",
+              },
+              rules: {
+                ".Label": {
+                  fontSize: "0.7rem",
+                },
+                ".Input": {
+                  fontSize: "0.8rem",
+                },
+              },
+            },
+          }}
+        >
+          <StripePaymentForm
+            clientSecret={clientSecret}
+            amount={amount}
+            onPaymentSuccess={handlePaymentSuccess}
+            onCancel={handleCancel}
+          />
+        </Elements>
+      ) : (
+        <div className="flex justify-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+"use client";
+
+import {
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { useState } from "react";
+import { Oval } from "react-loader-spinner";
+
+interface StripePaymentFormProps {
+  clientSecret: string;
+  amount: number;
+  onPaymentSuccess: () => void;
+  onCancel: () => void;
+}
+
+export const StripePaymentForm = ({
+  //   clientSecret,
+  amount,
+  onPaymentSuccess,
+  onCancel,
+}: StripePaymentFormProps) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setIsLoading(true);
+    setMessage(null);
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/payment/success`,
+      },
+      redirect: "if_required",
+    });
+
+    if (error) {
+      setMessage(error.message || "An unexpected error occurred");
+    } else {
+      onPaymentSuccess();
+    }
+
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="w-[100%] h-auto md:p-[10px] border-blue-600">
+      <div className="w-full h-[40px] flex items-center text-[0.9rem] px-[5px] font-normal">
+        Complete Payment -
+        <span className="text-[#B5E4FC] ml-[5px]">₹ {amount}</span>
+      </div>
+      <form onSubmit={handleSubmit} className="w-full flex flex-col">
+        <PaymentElement options={{ layout: "accordion" }} />
+        <div className="w-full flex space-x-3 mt-[5px] px-[2px]">
+          <button
+            type="submit"
+            disabled={isLoading || !stripe || !elements}
+            className="cursor-pointer h-[40px] flex items-center justify-center flex-1 bg-[#B5E4FC] hover:bg-[#E0F2FE] py-2 px-4 rounded disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <Oval
+                  visible={true}
+                  color="#101828"
+                  secondaryColor="#47494A"
+                  strokeWidth="5"
+                  ariaLabel="oval-loading"
+                  wrapperClass="w-[15px] mr-[10px] flex items-center justify-center border-red-500"
+                />
+                <p className="text-[#101828] text-[0.8rem]">Processing...</p>
+              </>
+            ) : (
+              <p className="text-[#101828] text-[0.8rem]">Pay Now</p>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="cursor-pointer h-[40px] flex items-center justify-center flex-1 bg-[#47494A] text-white text-[0.8rem]  py-2 px-4 rounded hover:bg-[#7D7D7D]"
+          >
+            Cancel
+          </button>
+        </div>
+        {message && <div className="text-red-500 text-sm">{message}</div>}
+      </form>
+    </div>
+  );
+};
+
+
+const BASE_URL: string =
+  process.env.NEXT_PUBLIC_VERCEL_URL || "https://tripin-next.vercel.app";
+
+export async function paymentInitiate(amount: number) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/api/stripe/create-payment-intents`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      }
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+
+
+import { NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
+
+export async function POST(request: Request) {
+  try {
+    const { amount } = await request.json();
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount * 100,
+      currency: "inr",
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    return NextResponse.json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: (err as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+
+So my nextjs app project directory has two folders
+frontend -> nextjs app
+backend -> nodejs + express + prisma 
+
+The project i am making is nextjs 15 Eccommerce website
+now there are two entities in my app, admin and customer
+
+
+below are the admin routes,
+/admin/inventory/products/
+/admin/inventory/categories/
+/admin/inventory/attributes/..
+
+admin routes are not accessible to customer.
+
+for customer storefront, routes are
+/shop/products
+/shop/products/details
+/shop/checkout
+/shop/cart..
+
+
+
+Now we dont necessarily make the customer signin to our app. He can checkout products etc..
+But only when he tries to add to cart, tries to buy or checkout then we take him to
+sign page.
+
+
+for admin we necessarily want that only signed user who has admin role can visit the admin routes.
+admin can visit the customer as well as admin routes, but customer cant visit the admin routes.
+
+
+for sign up we have fullname,email,password both for admin and customer.
+for sign in we have email and password.
+
+Now i have setup the signup and sigin as of now and it works fine.
+Backend has jwt token and other info in server setup cookies etc..
+
+Now we want to have somethings still to be figured out like,
+
+1. how to maintain the user session in frontend,
+2. if admin or user wants to explicitly signout,
+3. get the useSession info in client component and server components.
+
+
+but most importantly we want to make the flow such that we have smooth and consistent redirections.
+
+for example, when the app mounts, we need to check if the session has expire or not.
+
+let say the session has expire then we have two cases,
+1. if the session expired for was admin
+2. if the session expired was customer
+
+for admin we want to take them to /admin/auth/sign-in
+
+for customer we wont take them to /shop/auth/sign-in we
+just update the ui and now the header will no longer show the users name etc.
+so the customer is just casually surfing the app just that he wont have any session.
+but if the customer tries to again go to buy or add to cart then we take him to sign-in.
+
+
+also if signed as customer then
+he cant visit /admin routes and /shop/auth/sign-in and shop/auth/sign-up.
+
+also if signed as admin then
+he cant got to /admin/aith/sign-in /admin/auth/sign-up
+he can go to shop/routes but also can go to /shop/auth routes.
+
+
+
+so we need to figure out the route protection and session management.
+
+
+NOTE: i am not using the nextjs api routes.
+all the api goes to node js backend. Also i am not calling the fetch api in nexjt components.
+i have separate service files which has function which call the fetch api.
+
+
+
+Below is my current code file.
+//PS  - since the admin and customer shares the same ui and input fields for signin and signup 
+we have common components just different frontend routes,
+/admin/auth/sign-in
+/admin/auth/sign-up
+/shop/auth/sign-in
+/shop/auth/sign-up
+
+
+// admin/auth/sign-in and sign-up files
+
+"use client";
+import AuthForm from "@/components/Common/Auth/AuthForm";
+import { useRouter } from "next/navigation";
+
+export default function AdminSignInPage() {
+  const router = useRouter();
+  return (
+    <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px] border">
+      <div className="w-[100%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%] h-[100%] border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
+        <section className="w-full h-full flex items-center justify-center">
+          <div className="w-[80%] h-[80%] flex flex-col">
+            <p className="text-[2rem] font-medium">
+              Admin Sign In,
+              <br />
+              for seamless management.
+            </p>
+            <p className="text-[0.9rem] font-medium mt-[10px] leading-loose">
+              Welcome back! Manage products and orders with ease.
+              <span className="text-[#907AEA] ml-[5px]">Unlock control.</span>
+            </p>
+          </div>
+        </section>
+        <section className="w-full h-full flex items-center justify-center p-[5px]">
+          <AuthForm
+            isSignUp={false}
+            role="admin"
+            basePath="/admin/auth"
+            onSuccess={() => router.push("/admin/dashboard")}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+
+
+"use client";
+import AuthForm from "@/components/Common/Auth/AuthForm";
+import { useRouter } from "next/navigation";
+
+export default function AdminSignUpPage() {
+  const router = useRouter();
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px]">
+      <div className="w-[100%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%] h-[100%] border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
+        <section className="w-full h-full flex items-center justify-center">
+          <div className="w-[80%] h-[80%] flex flex-col">
+            <p className="text-[2rem] font-medium">
+              Admin Sign Up,
+              <br />
+              for seamless management.
+            </p>
+            <p className="text-[0.9rem] font-medium mt-[10px] leading-loose">
+              Join as an admin to manage products and orders effortlessly.
+              <span className="text-[#907AEA] ml-[5px]">
+                Start controlling now.
+              </span>
+            </p>
+          </div>
+        </section>
+        <section className="w-full h-full flex items-center justify-center p-[5px]">
+          <AuthForm
+            isSignUp={true}
+            role="admin"
+            basePath="/admin/auth"
+            onSuccess={() => router.push("/admin/auth/sign-in")}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+
+
+// shop/auth/sign-in and sign-up files
+
+
+"use client";
+import AuthForm from "@/components/Common/Auth/AuthForm";
+import { useRouter } from "next/navigation";
+
+export default function SignInPage() {
+  const router = useRouter();
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px]">
+      <div className="w-[100%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%] h-[100%] border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
+        <section className="w-full h-full flex items-center justify-center">
+          <div className="w-[80%] h-[80%] flex flex-col">
+            <p className="text-[2rem] font-medium">
+              Sign In,
+              <br />
+              for seamless experience.
+            </p>
+            <p className="text-[0.9rem] font-medium mt-[10px] leading-loose">
+              Welcome back! Dive straight into your favorite finds and breeze
+              through checkout.
+              <span className="text-[#907AEA] ml-[5px]">
+                Unlock, excitement.
+              </span>
+            </p>
+          </div>
+        </section>
+        <section className="w-full h-full flex items-center justify-center p-[5px]">
+          <AuthForm
+            isSignUp={false}
+            role="customer"
+            basePath="/shop/auth"
+            onSuccess={() => router.push("/shop")}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+
+
+"use client";
+import AuthForm from "@/components/Common/Auth/AuthForm";
+import { useRouter } from "next/navigation";
+
+export default function SignUpPage() {
+  const router = useRouter();
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px]">
+      <div className="w-[100%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%] h-[100%] border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
+        <section className="w-full h-full flex items-center justify-center">
+          <div className="w-[80%] h-[80%] flex flex-col">
+            <p className="text-[2rem] font-medium">
+              Simple Finds,
+              <br />
+              Seamless Checkout.
+            </p>
+            <p className="text-[0.9rem] font-medium mt-[10px] leading-loose">
+              Effortless shopping from discovery to checkout—browse handpicked
+              finds and complete your purchase in seconds.
+              <span className="text-[#907AEA] ml-[5px]">
+                No Wait, Just Wow.
+              </span>
+            </p>
+          </div>
+        </section>
+        <section className="w-full h-full flex items-center justify-center p-[5px]">
+          <AuthForm
+            isSignUp={true}
+            role="customer"
+            basePath="/shop/auth"
+            onSuccess={() => router.push("/shop/auth/sign-in")}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+// common AuthForm
+
+
+"use client";
+import Link from "next/link";
+import { FieldErrors, useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signIn, signUp } from "@/lib/services/auth/authServices";
+
+// Zod schemas
+const signInSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(
+      /^(?=.*[A-Z])(?=.*[0-9]).+$/,
+      "Must contain at least 1 uppercase letter and 1 number"
+    ),
+});
+
+const signUpSchema = signInSchema.extend({
+  fullname: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .regex(/^[a-zA-Z\s]+$/, "No numbers or special characters allowed"),
+});
+
+type SignInFormData = z.infer<typeof signInSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
+
+type AuthFormProps = {
+  isSignUp: boolean;
+  role: "customer" | "admin";
+  basePath: string; // e.g., "/shop/auth" or "/admin/auth"
+  onSuccess: () => void;
+};
+
+const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<SignInFormData | SignUpFormData>({
+    resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
+  });
+
+  const onSubmit = async (data: SignInFormData | SignUpFormData) => {
+    try {
+      if (isSignUp) {
+        await signUp({ ...data, role } as SignUpFormData & {
+          role: "customer" | "admin";
+        });
+      } else {
+        await signIn({ ...data, role } as SignInFormData & {
+          role: "customer" | "admin";
+        });
+      }
+      onSuccess();
+    } catch (error) {
+      if (error instanceof Error) {
+        setError("root", { message: error.message || "Authentication failed" });
+      }
+    }
+  };
+
+  const hasFullnameError = (
+    errors: FieldErrors<SignInFormData | SignUpFormData>
+  ): errors is FieldErrors<SignUpFormData> => {
+    return !!errors && "fullname" in errors;
+  };
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="w-[95%] h-[90%] md:w-[80%] md:h-[80%] grid grid-rows-[15%_20%_20%_20%_25%] border border-black/10 rounded px-[25px] py-[10px]"
+    >
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-green-600 text-[0.7rem] bg-green-200 px-[10px] py-[5px] border rounded">
+          {isSignUp
+            ? "Welcome! Create your account"
+            : "Successfully signed up. Sign in now"}
+        </p>
+      </div>
+
+      {errors.root && (
+        <div className="w-full h-full flex items-center justify-center">
+          <p className="text-red-500 text-[0.7rem]">{errors.root.message}</p>
+        </div>
+      )}
+
+      {/* FULLNAME GROUP (Sign-up only) */}
+      {isSignUp && (
+        <div className="w-[100%] h-[100%] grid grid-rows-[30px_minmax(0,1fr)_30px]">
+          <div className="w-full h-[100%] flex items-center">
+            <p className="text-[0.8rem] font-medium">FULLNAME</p>
+          </div>
+          <div className="w-full h-[100%]">
+            <input
+              {...register("fullname")}
+              className="w-full h-full border-b border-black/20 text-[0.8rem]"
+              placeholder="Enter your full name"
+            />
+          </div>
+          <div className="w-full h-[100%]">
+            {hasFullnameError(errors) && (
+              <p className="text-red-500 text-[0.7rem]">
+                {errors.fullname && errors.fullname.message}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* EMAIL GROUP */}
+      <div className="w-[100%] h-[100%] grid grid-rows-[30px_minmax(0,1fr)_30px]">
+        <div className="w-full h-[100%] flex items-center">
+          <p className="text-[0.8rem] font-medium">EMAIL</p>
+        </div>
+        <div className="w-full h-[100%]">
+          <input
+            {...register("email")}
+            className="w-full h-full border-b border-black/20 text-[0.8rem]"
+            placeholder="Enter your email"
+          />
+        </div>
+        <div className="w-full h-[100%]">
+          {errors.email && (
+            <p className="text-red-500 text-[0.7rem]">{errors.email.message}</p>
+          )}
+        </div>
+      </div>
+
+      {/* PASSWORD GROUP */}
+      <div className="w-[100%] h-[100%] grid grid-rows-[30px_minmax(0,1fr)_30px]">
+        <div className="w-full h-[100%] flex items-center">
+          <p className="text-[0.8rem] font-medium">PASSWORD</p>
+        </div>
+        <div className="w-full h-[100%]">
+          <input
+            type="password"
+            {...register("password")}
+            className="w-full h-full border-b border-black/20 text-[0.8rem]"
+            placeholder={isSignUp ? "Create a password" : "Enter your password"}
+          />
+        </div>
+        <div className="w-full h-[100%]">
+          {errors.password && (
+            <p className="text-red-500 text-[0.7rem]">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer - Submit Button */}
+      <div className="w-[100%] h-[100%] flex flex-col items-center">
+        <div className="w-full h-[50%]">
+          <button
+            type="submit"
+            className="w-full h-[80%] bg-[#444444]"
+            disabled={isSubmitting}
+          >
+            <p className="text-[0.7rem] text-white">
+              {isSubmitting
+                ? isSignUp
+                  ? "Signing Up..."
+                  : "Signing In..."
+                : isSignUp
+                ? "Sign Up"
+                : "Sign In"}
+            </p>
+          </button>
+        </div>
+        <div className="w-full h-[50%] flex items-center justify-center">
+          <p className="text-[0.7rem]">
+            {isSignUp ? "Already have an account?" : "Not yet Signed Up?"}
+            <Link
+              className="font-medium hover:underline ml-1"
+              href={`${basePath}/${isSignUp ? "sign-in" : "sign-up"}`}
+            >
+              {isSignUp ? "Sign In" : "Sign Up"}
+            </Link>
+          </p>
+        </div>
+      </div>
+    </form>
+  );
+};
+
+export default AuthForm;
+
+
+
+// authServices.ts service file function 
+
+const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
+interface SignUpPayload {
+  fullname: string;
+  email: string;
+  password: string;
+  role: "customer" | "admin";
+}
+
+interface SignInPayload {
+  email: string;
+  password: string;
+  role: "customer" | "admin";
+}
+
+interface ApiResponse<T> {
+  status: number;
+  data: T | null;
+  error: string | null;
+  message?: string | null;
+}
+
+export async function signUp(
+  payload: SignUpPayload
+): Promise<
+  ApiResponse<{ id: string; fullName: string; email: string; role: string }>
+> {
+  try {
+    const response = await fetch(`${BASE_URL}/api/auth/sign-up`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Sign-up Error:", result.error || result.message);
+      throw new Error(result.error || result.message || "Failed to sign up");
+    }
+
+    console.log("Sign-up Success:", result.message);
+    return result;
+  } catch (error) {
+    const err = error as Error;
+    console.error("Sign-up Error:", error);
+    throw new Error(`Failed to sign up: ${err.message}`);
+  }
+}
+
+export async function signIn(
+  payload: SignInPayload
+): Promise<
+  ApiResponse<{ id: string; fullName: string; email: string; role: string }>
+> {
+  try {
+    const response = await fetch(`${BASE_URL}/api/auth/sign-in`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Sign-in Error:", result.error || result.message);
+      throw new Error(result.error || result.message || "Failed to sign in");
+    }
+
+    console.log("Sign-in Success:", result.message);
+    return result;
+  } catch (error) {
+    const err = error as Error;
+    console.error("Sign-in Error:", error);
+    throw new Error(`Failed to sign in: ${err.message}`);
+  }
+}
+
+export async function signOut(): Promise<void> {
+  try {
+    const response = await fetch(`${BASE_URL}/api/auth/sign-out`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      console.error("Sign-out Error:", result.error || result.message);
+      throw new Error(result.error || result.message || "Failed to sign out");
+    }
+
+    console.log("Sign-out Success");
+  } catch (error) {
+    const err = error as Error;
+    console.error("Sign-out Error:", error);
+    throw new Error(`Failed to sign out: ${err.message}`);
+  }
+}
+
+
+
+
+// nodejs routes and controller,
+
+import { Router } from "express";
+import { authController } from "../../controllers/auth/auth.controller";
+const router = Router();
+
+router.post("/sign-in", authController.signInController);
+router.post("/sign-up", authController.signUpController);
+
+export default router;
+
+
+
+
+//controller
+import { RequestHandler } from "express";
+import { createResponse } from "../../utils/apiResponseUtils";
+import prisma from "../../db/prisma";
+import bcrypt from "bcrypt";
+import { z } from "zod";
+import jwt from "jsonwebtoken";
+
+const signUpSchema = z.object({
+  fullname: z
+    .string()
+    .min(2)
+    .regex(/^[a-zA-Z\s]+$/, "No numbers or special characters"),
+  email: z.string().email(),
+  password: z
+    .string()
+    .min(6)
+    .regex(/^(?=.*[A-Z])(?=.*[0-9]).+$/),
+  role: z.enum(["customer", "admin"]),
+});
+
+const signInSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(["customer", "admin"]),
+});
+
+const createJwtToken = (payload: {
+  userId: string;
+  email: string;
+  role: string;
+}) => {
+  return jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: "14d" });
+};
+
+const signUpController: RequestHandler = async (req, res) => {
+  try {
+    // Validate input
+    const parsed = signUpSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return createResponse(
+        res,
+        400,
+        null,
+        "Invalid input: " + parsed.error.message
+      );
+    }
+
+    const { fullname, email, password, role } = parsed.data;
+
+    // Check if email exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return createResponse(res, 400, null, "Email already exists");
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        fullname,
+        email,
+        password: hashedPassword,
+        role,
+      },
+    });
+
+    // Generate JWT
+    const token = createJwtToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    // Set cookie
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 2 weeks
+    });
+
+    return createResponse(
+      res,
+      201,
+      { id: user.id, fullname, email, role },
+      null,
+      "Sign-up successful"
+    );
+  } catch (error: any) {
+    return createResponse(
+      res,
+      500,
+      null,
+      error.message || "Internal server error"
+    );
+  }
+};
+
+const AuthMessages = {
+  USER_NOT_FOUND: "No account found with this email",
+  INVALID_PASSWORD: "Incorrect password",
+  AUTH_ERROR: "Authentication failed. Please try again later.",
+};
+
+// Sign-in controller
+const signInController: RequestHandler = async (req, res) => {
+  try {
+    // Validate input
+    const parsed = signInSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return createResponse(
+        res,
+        400,
+        null,
+        "Invalid input: " + parsed.error.message
+      );
+    }
+
+    const { email, password, role } = parsed.data;
+
+    // Find user
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return createResponse(res, 401, null, AuthMessages.USER_NOT_FOUND);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return createResponse(res, 401, null, AuthMessages.INVALID_PASSWORD);
+    }
+
+    // Validate role
+    if (user.role !== role) {
+      return createResponse(res, 403, null, "Invalid role for this user");
+    }
+
+    // Generate JWT
+    const token = createJwtToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    // Set cookie
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 2 weeks
+    });
+
+    return createResponse(
+      res,
+      200,
+      { id: user.id, fullName: user.fullname, email, role },
+      null,
+      "Sign-in successful"
+    );
+  } catch (error: any) {
+    return createResponse(
+      res,
+      500,
+      null,
+      error.message || "Internal server error"
+    );
+  }
+};
+
+interface DecodedToken {
+  userId: string;
+  email: string;
+  role: "admin" | "customer";
+  iat: number;
+  exp: number;
+}
+
+interface SessionResponse {
+  user: {
+    id: string;
+    fullname: string;
+    email: string;
+    role: "admin" | "customer";
+  } | null;
+}
+
+export const validateSessionController: RequestHandler = async (req, res) => {
+  try {
+    // 1. Get token from cookies
+    const token = req.cookies.auth_token;
+
+    // 2. If no token, return unauthenticated
+    if (!token) {
+      return createResponse(res, 200, null, null, "No session token found");
+    }
+
+    // 3. Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
+
+    // 4. Check token expiration
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp < now) {
+      res.clearCookie("auth_token");
+      return createResponse(res, 200, null, null, "Session expired");
+    }
+
+    // 5. Fetch user from database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        fullname: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    // 6. If user not found, clear cookie
+    if (!user) {
+      res.clearCookie("auth_token");
+      return createResponse(res, 200, null, null, "User not found");
+    }
+
+    // 7. Return valid user data
+    const sessionResponse: SessionResponse = {
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        email: user.email,
+        role: user.role as "admin" | "customer",
+      },
+    };
+
+    return createResponse(res, 200, sessionResponse, null, "Session valid");
+  } catch (error) {
+    // Handle JWT verification errors
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.clearCookie("auth_token");
+      return createResponse(res, 200, null, null, "Invalid session token");
+    }
+
+    // Handle other errors
+    console.error("Session validation error:", error);
+    return createResponse(res, 500, null, "Internal server error", null);
+  }
+};
+export const authController = {
+  signUpController,
+  signInController,
+  validateSessionController,
+};
+
+
+
+//index.ts
+import express, { Application, Request, Response, NextFunction } from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import router from "./routes";
+dotenv.config();
+
+const app: Application = express();
+const PORT: number = parseInt(process.env.PORT as string, 10) || 9000;
+// app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // Allow only your frontend origin
+    credentials: true, // Allow cookies and credentials
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use(express.json());
+app.use(cookieParser());
+// Error Handling Middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err.message);
+  res.status(500).json({ error: err.message });
+});
+
+app.use("/api", router);
+
+app.listen(PORT, () => {
+  console.log(`Server running on: http://localhost:${PORT}`);
+});
 
 
 
@@ -1413,9 +2773,237 @@ we dont need any variant only the base product.
 
 
 
+shop routes,
+/shop/.. -> products, product details page..
+/shop/auth/sign-in
+/shop/auth/sign-up
+/shop/user/[userId]/cart
+/shop/user/[userId]/checkout
+
+
+admin routes,
+/admin/auth/sign-in
+/admin/auth/sign-up
+/admin/inventory/products
+
+
+
+for customer(user),
+
+
+1. If signed-in 
+
+can visit, (all shop routes)
+  -> /shop/user/[userId]/cart
+  -> /shop/user/[userId]/checkout
+  -> /shop..
+
+cant visit,
+ -> /shop/auth/sign-in
+ -> /shop/auth/sign-up
+
+
+2. If not signed in,
+
+can visit,
+ -> /shop/auth/sign-in
+ -> /shop/auth/sign-up
+
+
+cant visit,
+  -> /shop/user/[userId]/cart
+  -> /shop/user/[userId]/checkout
+
+
+3. Can never visit /admin... routes
+
+
+
+for admin,
+
+1. If signed-in 
+
+can visit,
+-> /admin/inventory/...
+
+cant visit,
+-> /admin/auth/sign-in
+-> /admin/auth/sign-up
+
+2. If not signed-in
+
+can visit,
+-> /admin/auth/sign-in
+-> /admin/auth/sign-up
+
+cant visit,
+-> /admin/inventory/...
+
+3. Admin can visit behave like customer
 
 
 
 
 
 
+
+
+
+
+
+
+- mlmlmlmm
+
+
+
+
+
+
+problem,
+only admin can got /admin... routes
+but not if we are signed in as customer and tries to go to /admin/inventory/...
+then we are restricted but we can go to /admin/auth/sign-in and sign-up which is not intended.
+
+
+
+
+Lets make is simple.
+
+first check for authentication.
+
+
+if authenticated,
+
+-> if role = admin
+    - can go to all paths except /admin/auth/* and /shop/auth*
+
+
+-> if role=customer
+
+    - can go to
+      /shop/user/[userId]/cart
+      /shop/user/[userId]/checkout
+
+    - cant go to /admin/* 
+
+
+if not authenticated,
+
+-> can go to /shop/auth/*
+-> can go to /admin/auth/*
+-> can go to /shop other route like products etc.
+
+
+-> cant go to /admin/inventory/*
+-> cant go to/shop/user/[userId]/cart
+-> cant go to /shop/user/[userId]/checkout
+    
+
+
+
+so if we are authenticated, then we need to route based on the role.
+if not authenticated then its straight forward.
+
+
+
+
+
+
+
+
+
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createServerClient } from "./lib/auth/session";
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const response = NextResponse.next();
+
+  // Skip static files and API routes
+  if (pathname.startsWith("/_next") || pathname.startsWith("/api")) {
+    return response;
+  }
+
+  const auth = await createServerClient();
+  const { user } = await auth.getSession();
+
+  // Set session data for client components
+  if (user) {
+    await auth.setSession({ user });
+  } else {
+    response.cookies.delete("session_data");
+  }
+
+  // 1. First handle admin routes
+  if (pathname.startsWith("/admin")) {
+    // 1a. Always allow access to admin auth pages
+    if (pathname.startsWith("/admin/auth")) {
+      // If already signed in as admin, redirect to dashboard
+      if (user?.role === "admin") {
+        return NextResponse.redirect(
+          new URL("/admin/inventory/products", request.url)
+        );
+      }
+      // Allow access to sign-in/sign-up for others
+      return response;
+    }
+
+    // 1b. Block customers from ALL admin routes
+    if (user?.role === "customer") {
+      return NextResponse.redirect(new URL("/shop", request.url));
+    }
+
+    // 1c. Require admin role for other admin routes
+    if (!user || user.role !== "admin") {
+      const url = new URL("/admin/auth/sign-in", request.url);
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
+    }
+
+    return response;
+  }
+
+  // 2. Handle shop routes
+  if (pathname.startsWith("/shop")) {
+    // 2a. Redirect signed-in users away from auth pages
+    if (pathname.startsWith("/shop/auth") && user) {
+      return NextResponse.redirect(new URL("/shop", request.url));
+    }
+
+    // 2b. Protect user-specific routes
+    if (pathname.startsWith("/shop/user")) {
+      if (!user) {
+        const url = new URL("/shop/auth/sign-in", request.url);
+        url.searchParams.set("redirect", pathname);
+        return NextResponse.redirect(url);
+      }
+
+      // Verify user ID matches
+      const userIdFromPath = pathname.split("/")[3];
+      if (userIdFromPath && user.id && userIdFromPath !== user.id) {
+        const correctPath = pathname.replace(userIdFromPath, user.id);
+        return NextResponse.redirect(new URL(correctPath, request.url));
+      }
+    }
+
+    return response;
+  }
+
+  // 3. Handle root path
+  if (pathname === "/") {
+    if (user?.role === "admin") {
+      return NextResponse.redirect(
+        new URL("/admin/inventory/products", request.url)
+      );
+    }
+    return NextResponse.redirect(new URL("/shop", request.url));
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
