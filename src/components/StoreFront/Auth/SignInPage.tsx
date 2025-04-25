@@ -1,11 +1,32 @@
 "use client";
 import AuthForm from "@/components/Common/Auth/AuthForm";
+import { useSession } from "@/lib/auth/useSession";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/shop";
+  const { user } = useSession();
+  const redirectParam = searchParams.get("redirect") || "/shop";
+
+  const reconstructRedirect = () => {
+    if (!user?.id) return redirectParam;
+
+    // Handle cases where the redirect contains placeholder paths
+    if (redirectParam.includes("/user/cart")) {
+      return redirectParam.replace("/user/cart", `/user/${user.id}/cart`);
+    }
+    if (redirectParam.includes("/undefined")) {
+      return redirectParam.replace("/undefined", `/${user.id}`);
+    }
+
+    return redirectParam;
+  };
+
+  const handleSuccess = () => {
+    const finalRedirect = reconstructRedirect();
+    router.push(finalRedirect);
+  };
 
   return (
     <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px]">
@@ -31,7 +52,7 @@ export default function SignInPage() {
             isSignUp={false}
             role="customer"
             basePath="/shop/auth"
-            onSuccess={() => router.push(redirect)}
+            onSuccess={handleSuccess}
           />
         </section>
       </div>

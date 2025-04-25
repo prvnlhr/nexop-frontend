@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import ProductDetailsCard from "../Management/ProductDetailsCard";
-import VariantsTable from "../../NotInUse/VariantsTable";
+import VariantsTable from "../Management/VariantsTable";
 import EditVariantDetailsForm from "../Management/EditVariantDetailsForm";
 import VariantImageManagement from "../Management/VariantImageManagement";
 import AttributesManagement from "../Management/AttributesManagement";

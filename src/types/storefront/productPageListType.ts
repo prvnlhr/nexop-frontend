@@ -1,7 +1,34 @@
-export type ProductsResponse =
-  | ProductsWithAttributesResponse
-  | ProductsWithSubcategoriesResponse
-  | NoProductsResponse;
+// Products List ------------------------------------------------
+
+interface CategoryInfo {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface AttributeOption {
+  id: number;
+  value: string;
+}
+
+export interface AttributeResponse {
+  id: number;
+  name: string;
+  isFilterable: boolean;
+  options: AttributeOption[];
+}
+
+export interface FormattedProduct {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  brand: string;
+  price: number;
+  image?: string;
+  variantAttributes?: { attributeId: number; optionId: number }[] | null;
+  category: CategoryInfo;
+}
 
 interface ProductsWithAttributesResponse {
   type: "PRODUCTS_WITH_ATTRIBUTES";
@@ -22,29 +49,12 @@ interface NoProductsResponse {
   message: string;
 }
 
-export interface FormattedProduct {
-  id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  brand: string;
-  basePrice: number;
-  thumbnail?: string;
-  minPrice: number;
-  category: CategoryInfo;
-}
+export type ProductsResponse =
+  | ProductsWithAttributesResponse
+  | ProductsWithSubcategoriesResponse
+  | NoProductsResponse;
 
-export interface AttributeResponse {
-  id: number;
-  name: string;
-  isFilterable: boolean;
-  options: AttributeOption[];
-}
-
-interface AttributeOption {
-  id: number;
-  value: string;
-}
+//  Category -----------------------------------------------------
 
 export interface CategoryResponse {
   id: number;
@@ -54,13 +64,7 @@ export interface CategoryResponse {
   children?: CategoryResponse[];
 }
 
-interface CategoryInfo {
-  id: number;
-  name: string;
-  slug: string;
-}
-
-// product details
+// Product Details ------------------------------------------------
 
 interface Option {
   id: number;
@@ -83,11 +87,12 @@ interface Product {
   id: number;
   name: string;
   slug: string;
-  basePrice: number;
+  price: number;
   brand: string;
   description: string;
   category: CategoryInfo;
   images: ProductImage[];
+  variantId?: number;
 }
 
 interface VariantAttribute {

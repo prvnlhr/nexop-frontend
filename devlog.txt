@@ -937,7 +937,7 @@ Storage options,
 512GB
 
 
-At first for a prdocut we did not had any variants so we went on generating new ones.
+At first for a product we did not had any variants so we went on generating new ones.
 
 Admin selects 128GB and 'White titanium' and selectes the images and we creat a variants
 for 128GB-'White titanium' in db.
@@ -1383,7 +1383,7 @@ and images. I wont render the variants separately. It
 just renders the products object's data and its images.
 
 so now the filter matches a variant then we create the product data
-with the vairants data like price,name,images
+with the variants data like price,name,images
 brand and desc are comman so it wont mattter.
 if no filter the product object will have images and base product's(product in products table)
 details. so we dont need variants separately.
@@ -3007,3 +3007,963 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
+
+-------------
+
+
+I have a productDetails page thats gonna fetch the product with productSlug,like below.
+
+Now every product has variants. So 
+from the productDetails page we can selects the attributess options. based on the selected attributes & options
+the same productDetails page will need to render the productDetails but this time it will be the images
+of that variant, its details like price etc. As of now images is not rendered correctly.
+
+
+So what we want is that we fetch the product from the backend api whoes data has 
+a fixed structure like
+
+
+id,
+category,
+price,
+images,
+description,
+name,
+brand.
+etc..
+
+if the url has attributes and option then we will fetch the variant's details
+else we are gonna get the base  product details.
+
+Now the product data object has id. This id is important.
+So if base product then base product id else the variants id.
+
+PS- iam using the NodeJS controller to fetch the products details,
+
+
+interface ProductDetailsResponse {
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    brand: string;
+    price: number;
+    category: { id: number; name: string; slug: string };
+    images: { url: string; isThumbnail?: boolean }[];
+  };
+  attributes: {
+    id: number;
+    name: string;
+    options: { id: number; value: string; active: boolean }[];
+  }[];
+}
+
+export const getProductDetails: RequestHandler = async (req, res) => {
+  try {
+    const { categorySlug, productSlug } = req.params;
+    const queryParams = req.query as Record<string, string>;
+
+    if (!categorySlug || !productSlug) {
+      return createResponse(
+        res,
+        400,
+        null,
+        "categorySlug and productSlug are required"
+      );
+    }
+    // console.log("1: Params:", { categorySlug, productSlug, queryParams });
+
+    // Fetch the product with details
+    const product = await prisma.product.findFirst({
+      where: {
+        slug: productSlug,
+        status: "PUBLISHED",
+        category: { slug: categorySlug },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        brand: true,
+        basePrice: true,
+        category: {
+          select: { id: true, name: true, slug: true },
+        },
+        images: {
+          select: { url: true, isThumbnail: true },
+          orderBy: { isThumbnail: "desc" },
+        },
+        variants: {
+          where: { status: "ACTIVE", stock: { gt: 0 } },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            images: {
+              select: { url: true },
+              orderBy: { order: "asc" },
+            },
+            attributes: {
+              select: {
+                attributeId: true,
+                optionId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // console.log("2: Product:", product ? product.id : "Not found");
+
+    if (!product) {
+      return createResponse(
+        res,
+        404,
+        null,
+        "Product not found or category mismatch"
+      );
+    }
+
+    // console.log("3: Category ID:", product.category.id);
+
+    // Fetch attributes and options for the product's category
+    const attributes = await prisma.attribute.findMany({
+      where: { categoryId: product.category.id },
+      select: {
+        id: true,
+        name: true,
+        options: {
+          where: { active: true },
+          select: { id: true, value: true, active: true },
+        },
+      },
+      orderBy: { displayOrder: "asc" },
+    });
+
+    // Get relevant optionIds from product variants
+    const relevantOptionIds = new Set<number>();
+    product.variants.forEach((variant) => {
+      variant.attributes.forEach((attr) => {
+        relevantOptionIds.add(attr.optionId);
+      });
+    });
+
+    // console.log("4: Relevant optionIds:", Array.from(relevantOptionIds));
+
+    // Filter attributes.options to include only relevant options
+    const filteredAttributes = attributes.map((attr) => ({
+      id: attr.id,
+      name: attr.name,
+      options: attr.options.filter((opt) => relevantOptionIds.has(opt.id)),
+    }));
+
+    // console.log(
+    //   "5: Filtered Attributes:",
+    //   filteredAttributes.map((attr) => ({
+    //     id: attr.id,
+    //     name: attr.name,
+    //     options: attr.options.map((opt) => ({ id: opt.id, value: opt.value })),
+    //   }))
+    // );
+
+    // Parse and validate query parameters (e.g., attr_1=1)
+    let selectedVariant: (typeof product.variants)[number] | undefined;
+    const optionFilters: { attributeId: number; optionId: number }[] = [];
+    const invalidParams: string[] = [];
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (!key.startsWith("attr_")) continue;
+      const attributeId = parseInt(key.replace("attr_", ""), 10);
+      const optionId = parseInt(value, 10);
+      if (isNaN(attributeId) || isNaN(optionId)) {
+        // console.log("6: Invalid query param:", { key, value });
+        invalidParams.push(`${key}=${value}`);
+        continue;
+      }
+      const attribute = attributes.find((attr) => attr.id === attributeId);
+      // console.log("7: Checking attributeId:", attributeId, "Found:", attribute);
+      if (!attribute) {
+        console.log("8: Invalid attribute ID:", attributeId);
+        invalidParams.push(`attr_${attributeId}`);
+        continue;
+      }
+      if (!attribute.options.some((opt) => opt.id === optionId)) {
+        // console.log(
+        //   "9: Invalid option ID:",
+        //   optionId,
+        //   "for attribute:",
+        //   attributeId
+        // );
+        invalidParams.push(`attr_${attributeId}=${optionId}`);
+        continue;
+      }
+      optionFilters.push({ attributeId, optionId });
+    }
+
+    // console.log(
+    //   "10: Option filters:",
+    //   optionFilters,
+    //   "Invalid params:",
+    //   invalidParams
+    // );
+
+    // Find matching variant
+    if (optionFilters.length > 0) {
+      selectedVariant = product.variants.find((variant) =>
+        optionFilters.every(({ attributeId, optionId }) =>
+          variant.attributes.some(
+            (attr) =>
+              attr.attributeId === attributeId && attr.optionId === optionId
+          )
+        )
+      );
+    }
+
+    // console.log(
+    //   "11: Selected variant:",
+    //   selectedVariant ? selectedVariant.id : "None"
+    // );
+
+    // Merge variant data into product
+    const mergedProduct = {
+      id: product.id,
+      name: selectedVariant ? selectedVariant.name : product.name,
+      slug: product.slug as string,
+      description: product.description,
+      brand: product.brand,
+      price: selectedVariant ? selectedVariant.price : product.basePrice,
+      category: product.category,
+      images: selectedVariant ? selectedVariant.images : product.images,
+    };
+
+    // Format the response
+    const response: ProductDetailsResponse = {
+      product: mergedProduct,
+      attributes: filteredAttributes,
+    };
+
+    // console.log("12: Response prepared");
+
+    return createResponse(
+      res,
+      200,
+      response,
+      null,
+      invalidParams.length > 0
+        ? `Product details fetched, but ignored invalid query parameters: ${invalidParams.join(
+            ", "
+          )}`
+        : "Product details fetched successfully"
+    );
+  } catch (error) {
+    console.error("Get Product Details Error:", error);
+    return createResponse(
+      res,
+      500,
+      null,
+      error instanceof Error ? error.message : "Internal server error"
+    );
+  }
+};
+export const productsController = {
+  getCategoryProducts,
+  getProductDetails,
+};
+
+
+import { Response } from "express";
+
+interface ApiResponse<T> {
+  status: number;
+  data: T | null;
+  error: string | null;
+  message?: string | null;
+}
+
+export const createResponse = <T>(
+  res: Response,
+  status: number,
+  data: T | null,
+  error: string | null,
+  message?: string | null
+) => {
+  const response: ApiResponse<T> = {
+    status,
+    data,
+    error,
+    message,
+  };
+  res.status(status).json(response);
+};
+
+
+
+
+
+
+
+import ProductDetailsPage from "@/components/StoreFront/Pages/Product/ProductDetailsPage";
+import { getProductDetails } from "@/lib/services/storefront/productServices";
+import { ProductDetailsData } from "@/types/storefront/productPageListType";
+import React from "react";
+
+type Params = Promise<{ productSlug: string; categorySlug: string }>;
+
+const page = async ({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<{ [key: string]: string }>;
+}) => {
+  const { productSlug, categorySlug } = await params;
+  const productFiltersParams = await searchParams;
+  const productDetails: ProductDetailsData = await getProductDetails(
+    categorySlug,
+    productSlug,
+    productFiltersParams
+  );
+
+  // console.log(" productDetails:", productDetails);
+  return <ProductDetailsPage productDetails={productDetails} />;
+};
+
+export default page;
+
+
+
+
+"use client";
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import {
+  Attribute,
+  ProductDetailsData,
+} from "@/types/storefront/productPageListType";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import Link from "next/link";
+import { useSession } from "@/lib/auth/useSession";
+
+interface ProductDetailsPageProps {
+  productDetails: ProductDetailsData;
+}
+
+const OptionSelector = ({
+  attribute,
+  productSlug,
+  categorySlug,
+}: {
+  attribute: Attribute;
+  productSlug: string;
+  categorySlug: string;
+}) => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const handleOptionClick = (attributeId: number, optionId: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set(`attr_${attributeId}`, optionId.toString());
+    router.push(
+      `/shop/products/${categorySlug}/${productSlug}?${params.toString()}`
+    );
+  };
+
+  return (
+    <div className="w-full h-[auto] flex flex-col my-[15px]">
+      <div className="w-full h-[30px] flex items-center">
+        <p className="text-[0.8rem] font-medium whitespace-nowrap">
+          {attribute.name}
+        </p>
+      </div>
+      <div className="w-full h-[auto] min-h-[40px] flex flex-wrap items-center">
+        {attribute.options.map((option) => {
+          const isSelected =
+            searchParams.get(`attr_${attribute.id}`) === option.id.toString();
+          return (
+            <button
+              onClick={() => handleOptionClick(attribute.id, option.id)}
+              key={option.id}
+              className={`h-[80%] min-w-[50px] w-auto flex items-center justify-center py-[5px] px-[10px] mb-[10px] mr-[15px] border border-black/20 cursor-pointer ${
+                isSelected ? "bg-blue-500 text-white" : ""
+              } ${!option.active ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={!option.active}
+            >
+              <p className="text-[0.8rem] whitespace-nowrap">{option.value}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
+  productDetails,
+}) => {
+  const { user } = useSession();
+  const router = useRouter();
+  const { product, attributes } = productDetails;
+  console.log(" product:", product);
+
+  const [currentSelectedImage, setCurrentSelectedImage] = useState<
+    string | undefined
+  >(undefined);
+
+  useEffect(() => {
+    setCurrentSelectedImage(product.images[0].url);
+  }, [product]);
+
+  const handleAddToCart = () => {
+    if (user) {
+      console.log("adding to cart...", product);
+    } else {
+      router.push("/shop/auth/sign-in");
+    }
+  };
+
+  return (
+    <div className="w-[100%] h-[100%] p-[20px]">
+      <div className="w-[100%] h-[100%] grid grid-rows-[50vh_100vh] grid-cols-1 md:grid-cols-2 md:grid-rows-1 overflow-y-scroll p-[5px] hide-scrollbar">
+        <section className="w-[100%] h-[100%] flex flex-col md:flex-row border-black/10">
+          <div className="w-[100%] md:w-[150px] h-[150px] md:h-[100%] border-t border-b border-l border-black/10 flex flex-row items-center md:flex-col order-2 md:order-1 overflow-x-scroll md:overflow-y-scroll hide-scrollbar">
+            {product.images.map((img) => (
+              <div
+                onClick={() => setCurrentSelectedImage(img.url)}
+                key={img.url}
+                className="cursor-pointer relative h-[80%] md:w-[80%] md:h-auto aspect-square mx-[10px] md:my-[10px] flex items-center justify-center bg-[#EFF1F3] border-black/10 rounded"
+              >
+                <Image
+                  src={img.url}
+                  alt="test-image"
+                  priority={true}
+                  quality={10}
+                  className="w-[90%] aspect-square rounded object-contain"
+                  fill={true}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="w-[100%] md:w-[calc(100%-150px)] h-[calc(100%-100px)] order-1 md:order-2 md:h-[100%] border border-black/10 p-[10px]">
+            <div className="relative w-[100%] h-[100%] flex items-center justify-center border-black/10">
+              {currentSelectedImage && (
+                <Image
+                  src={currentSelectedImage}
+                  alt="test-image"
+                  priority={true}
+                  quality={100}
+                  fill={true}
+                  className="w-full h-full rounded object-contain"
+                />
+              )}
+            </div>
+          </div>
+        </section>
+        <section className="w-[100%] h-[100%] border-black/10 p-[10px] border md:px-[25px] overflow-y-scroll hide-scrollbar">
+          <div className="w-[100%] h-auto flex flex-col border-black/10">
+            {/* PRODUCT NAME */}
+            <div className="w-full h-[auto] flex items-center">
+              <p className="text-[1.5rem] font-normal">{product.name}</p>
+            </div>
+            <div className="w-full h-[30px] flex items-start">
+              <p className="text-[0.75rem] font-medium">{product.brand}</p>
+            </div>
+            {/* PRODUCT ATTRIBUTES */}
+            <div className="w-full h-auto flex flex-col">
+              {attributes.map((attr) => (
+                <OptionSelector
+                  key={attr.id}
+                  productSlug={product.slug}
+                  categorySlug={product.category.slug}
+                  attribute={attr}
+                />
+              ))}
+            </div>
+
+            <div className="w-full h-[auto] flex flex-col my-[15px]">
+              <div className="w-full h-[30px] flex items-center">
+                <p className="text-[0.8rem] font-medium whitespace-nowrap">
+                  Quantity
+                </p>
+              </div>
+              <div className="w-full h-[auto] min-h-[40px] flex items-center p-[2px]">
+                <div className="w-auto h-[40px] flex p-[2px] border border-black/10">
+                  <button className="h-full aspect-square flex items-center justify-center cursor-pointer">
+                    <Icon
+                      icon="stash:minus-solid"
+                      className="w-[40%] h-[40%]"
+                    />
+                  </button>
+                  <div className="h-full aspect-square flex items-center justify-center text-[0.7rem]">
+                    01
+                  </div>
+                  <button className="h-full aspect-square flex items-center justify-center cursor-pointer">
+                    <Icon
+                      icon="majesticons:plus-line"
+                      className="w-[40%] h-[40%]"
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full h-[auto] grid grid-cols-[auto_auto] my-[20px]">
+              <button
+                onClick={handleAddToCart}
+                className="md:w-[80%] h-[50px] flex items-center justify-center border border-black/10"
+              >
+                <p className="text-[0.8rem]">Add to cart</p>
+              </button>
+              <Link
+                href={`/shop/user/${user?.id}/checkout?type=single&product_id=${
+                  product.id
+                }&variant_id=${15}`}
+                className="md:w-[80%] h-[50px] flex items-center justify-center  bg-[#444444] border border-black/10"
+              >
+                <p className="text-[0.8rem] text-[white]">Buy it now</p>
+              </Link>
+            </div>
+            {/* PRODUCT DESCRIPTION */}
+            <div className="w-full h-[auto] flex flex-col my-[15px] border-red-500">
+              <div className="w-full h-[50px] flex items-center">
+                <p className="text-[0.8rem] font-medium">Description</p>
+              </div>
+              <div className="w-full h-[calc(100%-40px)] flex items-center">
+                <p className="text-[0.8rem] font-normal leading-relaxed">
+                  {product.description}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+export default ProductDetailsPage;
+
+
+
+
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  fullname  String
+  email     String    @unique
+  password  String
+  role      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  addresses Address[]
+
+  @@index([email])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  phone     String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id         Int         @id @default(autoincrement())
+  name       String
+  slug       String      @unique
+  parent     Category?   @relation("CategoryToCategory", fields: [parentId], references: [id])
+  parentId   Int?
+  children   Category[]  @relation("CategoryToCategory")
+  products   Product[]
+  attributes Attribute[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([parentId])
+  @@index([slug])
+}
+
+model Attribute {
+  id               Int                @id @default(autoincrement())
+  name             String
+  category         Category           @relation(fields: [categoryId], references: [id])
+  categoryId       Int
+  options          AttributeOption[]
+  isFilterable     Boolean            @default(true)
+  displayOrder     Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  VariantAttribute VariantAttribute[]
+
+  @@index([categoryId])
+}
+
+model AttributeOption {
+  id               Int                @id @default(autoincrement())
+  value            String
+  attribute        Attribute          @relation(fields: [attributeId], references: [id])
+  attributeId      Int
+  createdAt        DateTime           @default(now())
+  VariantAttribute VariantAttribute[]
+  active           Boolean            @default(true)
+
+  @@unique([attributeId, value])
+  @@index([attributeId])
+}
+
+model Product {
+  id          Int            @id @default(autoincrement())
+  name        String
+  slug        String?        @unique
+  description String?
+  brand       String
+  basePrice   Float
+  status      ProductStatus  @default(DRAFT)
+  category    Category       @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  images      ProductImage[]
+  variants    Variant[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([slug])
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model ProductImage {
+  id          Int      @id @default(autoincrement())
+  url         String
+  publicId    String?
+  altText     String?
+  isThumbnail Boolean  @default(false)
+  order       Int      @default(0)
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   Int
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+}
+
+model Variant {
+  id         Int                @id @default(autoincrement())
+  name       String
+  slug       String             @unique
+  sku        String             @unique
+  price      Float
+  stock      Int                @default(0)
+  status     VariantStatus      @default(ACTIVE)
+  product    Product            @relation(fields: [productId], references: [id])
+  productId  Int
+  attributes VariantAttribute[]
+  images     VariantImage[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([productId])
+  @@index([sku])
+  @@index([slug])
+}
+
+enum VariantStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+model VariantAttribute {
+  variant     Variant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId   Int
+  attribute   Attribute       @relation(fields: [attributeId], references: [id])
+  attributeId Int
+  option      AttributeOption @relation(fields: [optionId], references: [id])
+  optionId    Int
+  createdAt   DateTime        @default(now())
+
+  @@id([variantId, attributeId])
+  @@index([variantId])
+  @@index([attributeId, optionId])
+  @@index([optionId])
+}
+
+model VariantImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  publicId  String?
+  order     Int      @default(0)
+  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId Int
+  createdAt DateTime @default(now())
+
+  @@index([variantId])
+}
+
+
+// you did not get my point.
+
+SO there is a list of products at route /shop/categories/[categorySlug]/products
+These are all the base products, the products that are rendered from the products table.
+Each product can have different variants which themselves are  different selleable SKUs.
+
+when we click on the product card from the list of products the url is like
+ /shop/categories/[categorySlug]/products/[productSlug].
+
+ This url will render the ProductDetailsPage. It will first fetch the productsDetails using the productSlug.
+ Now if the url also has searchParams like, 
+ http://localhost:3000/shop/categories/smartphone/products/iphone-16-pro?attr_14=67&attr_12=56&attr_13=59
+ the we will filter the productsDetails to get the exact variant of the product in backend api.
+
+
+ So we have two cases,
+ 1. if only productSlug then the response data product will has all details of the base Product,
+ 2. if along with the productSlug we have searchParams then backend api controller will get that exact variant's details.
+
+ As of now the logic seems to work fine but there is a small problem.
+ The data return from the controller response specifically the product object should have a fixed format like below,
+
+ if we are getting the variant,
+ then the response product object will be like
+
+
+ id:variant's id,
+ name:variant's name,
+ brand:base product's brand,
+ desc:base product's desc.,
+ price:variants price,
+ images:variant's images,
+
+
+
+ if we dont have queryParams in controller then we want to return the base products details
+ and the structure should be same as above product object just the details like id name ,  images, price will  be of the base product
+
+
+But then is a catch, we Always needs the base products id, slug.
+so the response product object in both case should be like
+
+id: variant id | base product id 
+name: variant name | base product name
+brand:brand will be of base product
+description:brand will be of base product
+price:variant price | base product price
+images: variant images | base product images
+
+
+
+
+
+
+
+
+
+name: variant name | base name
+price: variant name | base name
+brand: brand
+description: description
+image: variant image | base image
+slug: variant slug | base slug
+variants attribute with options?: if we have variant  
+category:{id: ,name: ,slug:}
+attributes  with options of the category
+
+
+
+so now there is catch,
+what if i select a filter Storage : 512 gb. So now the url has attr_13=58
+attr_13 is attribute with id : 13  and option with id : 58.
+
+Now for a product there may be variant which as these attribute id : 13 and for that attribute we may have option with id : 58. 
+Even if the variant
+
+
+
+So i have a sidebar which renders the category's attributes and options on left side
+and on right side we have products list.
+
+url is like,
+http://localhost:3000/shop/categories/smartphone/products
+http://localhost:3000/shop/categories/smartphone/products?attr_13=60&attr_13=59&attr_13=58 
+
+both of the renders the same product list page with sidebar and productslist.
+
+The difference is that first will render all the products under a category with categorySlug
+and and the second one will render the products with filters.
+
+
+Now for this route -> http://localhost:3000/shop/categories/smartphone/products
+products list renders base products from the products table.
+
+and for this route  -> http://localhost:3000/shop/categories/smartphone/products?attr_13=60&attr_13=59&attr_13=58 
+we renders the base products but with matching variant's data.
+
+So a product can have mulitple variants for example category : 'smartphone'
+has a product 'Iphone 16 pro'. This product can have mulitple variants
+like 'Iphone 16 Pro | 512 | Black titanium', 'Iphone 16 Pro | 512 White titanium' etc..
+so many combinations.
+
+So when the filters are present in the url we will render the matching variants.
+
+Now the nodejs controller which returns the data has a particular format.
+
+response ={
+products:
+attributes:
+category:
+}
+
+now filters or no filters somethings gonna remain same in response like the attributes and category,
+for the products there is also a specific format, like below,
+
+id:  -> always the base product's id -> product from the  products table
+name: variant's name | base product's name
+slug: always base product's slug 
+description:  base product's desc.
+brand: base product's brand
+price: variant's price | base product's price
+image?: variant's image | base product's image -> for thumbnail
+variantAttributes?: { attributeId: number; optionId: number }[] | null; -> if we have a matching variant
+category: { id: number; name: string; slug: string }; -> alway present -> category info
+
+
+
+products will be rendered in  products list,
+attributes with their options will be rendered in sidebar.
+category -> we also need this in response always.
+
+Now we need to focus particularly on products in response.
+
+So if we dont have queryParams in controller, then we are gonna return the response
+with the products as all the products of the category.
+
+if we have queryParams then things gonna be little different. In this case 
+we will first get the  category's all the products, the based on the  queryParams
+filter we are gonna construct the products array for the response.
+
+so if a product has a variant that has matching attribute option then we are gonna include it in
+products, for example if the queryParams has storage : 512, 256 then we are
+gonna return all the products variant that has these attribute and options associated with them.
+So if the queryParams has storage : 512 then we are gonna include all 512 Variants.
+Now as the filters increases the narrowing gonna increase for example if also have 512 and color : white titanium,
+then all 512 but also white titanium color, so other 512 colors like black will  now be not included.
+Now if we further has 512, white titanium , 8gb ram then further narrowing.
+
+So this is how filtering gonna work.
+
+So i want you to update the controller to achieve the above requirements. Iam giving u the prisma schema
+for referencing. Also in the current controller logic filter does not works 
+and attributes and category in response it fine so no change there. We just want the products to be return
+properly.
+
+Also the controller a Case 2: No direct products - get child categories and their products,
+which is some other logic so dont change it. we just need to work on 'case 1'.
+
+
+   
+
+
+ok so lets think this way.
+
+for from a storage attribute we selected 512,
+then want all the vairants of all the products which has 512 as storage attribute.
+
+Now along with the storage 512 we also have color like white, then we need all the products all the Variants
+which has 512 and white. So not 512 black. See how we are narrowing our results.
+if we had storage 512 and 256 then we needed all products all variants which have 512,256 storage.
+Now along with the storage if we had color white the all 512,256 but only color white.
+if further we also had color black then 512,256 and color white and black only.
+
+So now this is complicated. So we need some better way to filter this.
+
+if no filters then category's base products with base details.
+
+
+
+
+
+
+So i think that query the db directly wont help us. 
+So what if do something like below,
+
+we have category. so we get its products.
+so for each product get get all its variants(like all).
+
+now its time to work on this variants array.
+let understand like below
+
+
+storage -> 1 [attribute,attribute_id ]
+   - 512gb -> 11  [option, option_id]
+   - 256gb -> 12
+   - 512gb -> 13
+
+color -> 2
+   - white -> 21
+   - black -> 22
+   - green -> 23
+
+ram -> 3
+   - 8gb -> 31
+   - 12gb -> 32
+   - 16gb -> 33
+
+
+now variant array will have variants like
+
+512 - black - 8
+512 - black - 12
+512 - black - 16
+512 - white - 8
+512 - white - 12
+512 - white - 16
+.. many combinations
+
+
+so now we need to filter them.
+
+for example queryParams has attr_1=12,attr_1=13,attr_2=21,attr_2=23
+
+so we need a way to match the variants with queryParams
+so for example,
+attr_1=12,13
+atrr_2=21,23
+
+now we can make combination like 
+attr_1=12,21
+attr_2=12,23
+...
+u got the gist.
+
+so first we get all the variants and then we need a effecient way to start matching.
+
+How does this flipkart and amazon does this
+
+
+
+
+
+
+
+
+

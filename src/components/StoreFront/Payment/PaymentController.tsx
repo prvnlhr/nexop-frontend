@@ -1,10 +1,10 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { useToast } from "@/context/ToastContext";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
 import { createCheckoutSession } from "@/actions/payment/stripePaymentAction";
+import { useSession } from "@/lib/auth/useSession";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
@@ -38,57 +38,72 @@ interface PaymentControllerProps {
   onPaymentSuccess: () => void;
 }
 
+export const initiatePayment = async (
+  amount: number,
+  email: string,
+  userId: string,
+  showToast: (options: ToastOptions) => string | number
+) => {
+  try {
+    const stripe: Stripe | null = await stripePromise;
+    if (!stripe) {
+      throw new Error("Stripe failed to load");
+    }
+
+    const session = await createCheckoutSession({
+      amount: amount * 100,
+      email,
+      userId,
+    });
+
+    const { error } = await stripe.redirectToCheckout({
+      sessionId: session.id,
+    });
+
+    if (error) {
+      showToast({
+        type: "error",
+        title: "Payment Error",
+        description: error.message || "Failed to redirect to checkout",
+      });
+    }
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to initiate payment";
+    showToast({
+      type: "error",
+      title: "Payment Error",
+      description: errorMessage,
+    });
+    throw error;
+  }
+};
+
 export const PaymentController = ({
   amount,
   email,
   onPaymentSuccess,
 }: PaymentControllerProps) => {
-  const router = useRouter();
+  const { user } = useSession();
   const { showToast, dismissToast } = useToast() as ToastContext;
-  const [initiatingForm, setInitiatingForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const toastIdRef = useRef<string | number>("");
+  const [initiatingForm, setInitiatingForm] = useState(false);
+  // const toastIdRef = useRef<string | number>("");
 
   const handlePaymentInitiated = async () => {
     setInitiatingForm(true);
     try {
-      const stripe: Stripe | null = await stripePromise;
-      if (!stripe) {
-        throw new Error("Stripe failed to load");
-      }
-
-      const session = await createCheckoutSession({
-        amount: amount * 100,
-        email,
-      });
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: session.id,
-      });
-
-      if (error) {
-        showToast({
-          type: "error",
-          title: "Error",
-          description: error.message || "Failed to redirect to checkout",
-        });
-      }
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to initiate payment";
-      showToast({
-        type: "error",
-        title: "Error",
-        description: errorMessage,
-      });
+      await initiatePayment(amount, email, user?.id as string, showToast);
+    } catch (error) {
+      console.log(" error:", error);
+      // Error already handled in initiatePayment
     } finally {
       setInitiatingForm(false);
     }
   };
 
   // const handlePaymentSuccess = async () => {
-
   //   setIsProcessing(true);
-
   //   const toastId = showToast({
   //     type: "loading",
   //     title: "Payment Successful",
@@ -113,11 +128,10 @@ export const PaymentController = ({
   //   } catch (error: unknown) {
   //     const errorMessage =
   //       error instanceof Error ? error.message : "Could not complete order";
-  //     console.error("Error:", errorMessage);
   //     showToast({
   //       type: "error",
   //       title: "Error",
-  //       description: "Could not complete order",
+  //       description: errorMessage,
   //     });
   //   } finally {
   //     setIsProcessing(false);
@@ -125,7 +139,7 @@ export const PaymentController = ({
   // };
 
   return (
-    <div className="w-[100%] h-auto flex border-red-500 md:p-[5px]">
+    <div className="w-[100%] h-auto flex border-red-500 md:p-[5px] border">
       <button
         onClick={handlePaymentInitiated}
         disabled={isProcessing || initiatingForm}
@@ -143,7 +157,7 @@ export const PaymentController = ({
         {initiatingForm || isProcessing ? (
           <LoadingSpinner />
         ) : (
-          <p className="font-medium text-[0.9rem] text-black">Pay ${amount}</p>
+          <p className="font-medium text-[0.9rem] text-black">Pay ccccc{amount}</p>
         )}
       </button>
     </div>

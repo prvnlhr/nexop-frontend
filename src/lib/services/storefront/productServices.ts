@@ -3,17 +3,23 @@
 const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 // Service Function
-export async function fetchProductsByCategory(categorySlug: string) {
+export async function fetchProductsByCategory(
+  categorySlug: string,
+  queryParams: { [key: string]: string } = {}
+) {
   try {
-    const response = await fetch(
-      `${BASE_URL}/api/storefront/products/${categorySlug}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const url = new URL(`${BASE_URL}/api/storefront/products/${categorySlug}`);
+
+    Object.entries(queryParams).forEach(([key, value]) => {
+      url.searchParams.append(key, value);
+    });
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -39,31 +45,6 @@ export async function fetchProductsByCategory(categorySlug: string) {
 }
 
 // ------------------------------------------------------------------------------------------
-
-// interface ProductDetailsResponse {
-//   product: {
-//     id: number;
-//     name: string;
-//     slug: string;
-//     description: string | null;
-//     brand: string;
-//     basePrice: number;
-//     category: { id: number; name: string; slug: string };
-//     images: { url: string; isThumbnail: boolean }[];
-//   };
-//   variant?: {
-//     id: number;
-//     name: string;
-//     price: number;
-//     stock: number;
-//     images: { url: string }[];
-//   };
-//   attributes: {
-//     id: number;
-//     name: string;
-//     options: { id: number; value: string; active: boolean }[];
-//   }[];
-// }
 
 export async function getProductDetails(
   categorySlug: string,

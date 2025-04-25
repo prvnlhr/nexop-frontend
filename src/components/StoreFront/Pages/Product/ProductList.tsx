@@ -1,13 +1,37 @@
 import { FormattedProduct } from "@/types/storefront/productPageListType";
-import { Icon } from "@iconify/react/dist/iconify.js";
 import Image from "next/image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import React from "react";
 
 interface ProductListProps {
   products: FormattedProduct[];
 }
 const ProductList: React.FC<ProductListProps> = ({ products }) => {
+  const { categorySlug } = useParams();
+
+  const getProductUrl = (prod: FormattedProduct): string => {
+    // Validate categorySlug and slug
+    if (!categorySlug || !prod.slug || !prod.category?.slug) {
+      return "/shop";
+    }
+
+    // Base URL: /shop/categories/{categorySlug}/products/{prod.slug}
+    const baseUrl = `/shop/categories/${categorySlug}/products/${prod.slug}`;
+
+    // If no variantAttributes, return base URL
+    if (!prod.variantAttributes || prod.variantAttributes.length === 0) {
+      return baseUrl;
+    }
+
+    // Construct query string for variant attributes (e.g., attr_1=11&attr_2=22)
+    const queryParams = prod.variantAttributes
+      .map((attr) => `attr_${attr.attributeId}=${attr.optionId}`)
+      .join("&");
+
+    return `${baseUrl}?${queryParams}`;
+  };
+
   return (
     <div className="w-full h-full flex items-center justify-center p-[20px]">
       <div
@@ -16,7 +40,8 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
       >
         {products.map((prod, pId) => (
           <Link
-            href={`${prod.category?.slug}/${prod.slug}`}
+            // href={`/shop/categories/${prod.category?.slug}/products/${prod.slug}`}
+            href={getProductUrl(prod)}
             key={pId}
             className="w-auto h-auto mb-[20px] flex flex-col self-start bg-white 
             shadow-[0px_3px_5px_rgba(0,0,0,0.04)]
@@ -25,15 +50,14 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
             rounded"
           >
             <div className="w-full aspect-[1/1.1] p-[8px]">
-              <div className="relative w-full h-full bg-[#EFF1F3] overflow-hidden rounded">
-                {prod.thumbnail && (
+              <div className="relative w-full h-full bg-[#EFF1F3] overflow-hidden rounded p-[5px] border border-black/5">
+                {prod.image && (
                   <Image
                     fill={true}
                     priority={true}
-                    src={prod.thumbnail}
+                    src={prod.image}
                     alt={prod.name}
-                    sizes="100%"
-                    className="object-contain"
+                    className="object-cover"
                   />
                 )}
               </div>
@@ -47,27 +71,13 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
 
               <div className="w-full h-auto flex items-center my-[10px]">
                 <p className="text-[0.7rem] font-medium">
-                  ₹ {prod.minPrice}
+                  ₹ {prod.price}
                   <span className="text-[0.65rem] text-[#667085] line-through ml-[5px]">
                     MRP : ₹9096.45
                   </span>
                   <span className=" text-[0.65rem] ml-[5px]">11% Off</span>
                 </p>
               </div>
-
-              {/* <div className="w-full h-auto flex items-center">
-                <div className="w-auto h-[20px] flex items-center justify-center bg-[#EFF1F3] rounded">
-                  <div className="h-full aspect-square flex items-center justify-center">
-                    <Icon
-                      icon="solar:star-bold"
-                      className="w-[50%] h-[50%] text-[#FDB022]"
-                    />
-                  </div>
-                  <div className="h-full flex-1 flex items-center justify-center text-[0.65rem] px-[5px]">
-                    4.5
-                  </div>
-                </div>
-              </div> */}
             </div>
           </Link>
         ))}
