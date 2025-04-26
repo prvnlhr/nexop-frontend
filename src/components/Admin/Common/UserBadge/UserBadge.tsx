@@ -39,9 +39,9 @@ const UserBadge = () => {
   return (
     <div
       onClick={handleLogout}
-      className="h-[70%] aspect-square flex items-center justify-center bg-white rounded-full p-[2px] border border-black/10"
+      className="h-[60%] aspect-square flex items-center justify-center bg-white rounded-full p-[2px] border border-black/20"
     >
-      <div className="w-[100%] h-[100%] flex items-center justify-center bg-[#EFF1F3] rounded-full">
+      <div className="w-[100%] h-[100%] flex items-center justify-center bg-[#EFF1F3] rounded-full border border-black/20">
         <p className="text-[1rem] font-medium">
           {isLoading ? "..." : firstLetter}
         </p>

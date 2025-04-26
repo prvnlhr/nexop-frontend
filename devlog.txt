@@ -3965,5 +3965,320 @@ How does this flipkart and amazon does this
 
 
 
+In my ecommerce nextjs app. I have search functionality. When customer 
+searches any thing we show a modal with search results.
+
+So the search modal will have ui like something below,
+so it will have a section to show exact product match (base product or variant both consider as product)
+
+category section,
+will show if there is matching categories for keyword.
+
+
+for categories section its simple,
+for products section we want to search products and their variants to match the keyword.
+Now keywords can be '128gb iphone 16 pro' or 'smartphone under 5000' or 'white color smartphones' or 'red t shirts'
+
+
+
+so what we will do it to first get the maximum details we can get from the search keyword
+and try to extract as much information we can from the keyword
+like if a keyword has category or not or if keyword has attribute and options or not
+or keyword has a exact name or not.
+once we have enough info now we want to search on three different areas
+
+categories for matching category
+products/variants name,
+attribute/options.
+
+at the end we want two list,
+searched catergories,
+searched products (base products and variants both are considered as products)
+
+We then return two list in response.
+
+
+
+ 
+SO i searched 'White Titanium'
+and i know that db had Iphone 16 pro variants which has white titanium.
+So why did it failed.
+
+Lets rework on the parseSearchQuery
+
+q-> "White titanium"
+
+So how we do this,
+we analyze the q to extract
+1. attribute & options
+2. categories
+3. exact name of the product.
+
+fox example if q is like -> 'Iphone 16 Pro 512 black titanium'.
+
+so we have 
+attributes and options : 512, black, titanium
+categories : None
+exact name : Iphone, Iphone 16 Pro...
+
+
+now we take the attributes and options and then we
+from the db atributes and options data we get the variants
+which are associated with these attr. & options.
+
+now for categories. since we did not had any categories so empty.
+
+
+now exact name of products(base, vairants)
+we get this buy matching the name for the products and variants.
+
+finally we remove duplicates and the return the data.
+
+
+
+if q would have been 'smartphones under 5000'
+in that case,
+
+attributes & options : 5000
+categories : smartphones
+also special filter 'under' ->  we can have this to filter price( under,less, more etc).
+or under can be name of products also like 'underwear' or 'under shirt'
+
+
+so we need to parse the query in such a way that,
+we can extract the information which lies in three parameters,
+names , categories, attributes & options.
+
+
+
+
+
+lets get things straight,
+
+we start with query 'q',
+
+Now for a given q query we want some things out of it,
+
+1. All the  categories it has,
+2. All attributes and options,
+3. All the exact names if it has
+
+for first one its simple.
+for second one we try to tokenize the query and get all the attributes and options from 'q'.
+for third we want to check if the q is exact name.
+
+
+for example 1,
+
+q -> 'Iphone 16 Pro 512'
+
+categories : none
+atributes & options : 512 -> [storage : 512](we will have actual id of attribute and option)
+exact names : 'Iphone' , 'Iphone 16 Pro', 'Iphone 16 Pro 512'
+
+exmaple 2,
+
+q -> 'smartphones under 5000'
+
+categories : smartphones
+attributes: 5000 (its can be price, storage, etc we dont know yet until we try to find this in attributes and options table)
+exact names : 'smartphones under 5000' this can be potential name of product or variants we dont know.
+
+
+
+So we will go step by step.
+first i want you to console log the parseSearchQuery for me. in response you can return empty data.
+once i confirm that parseSearchQuery is correct then we move forward
+
+
+
+We tokenize the query. correct
+Potential names. Correct
+
+Need to work on 
+Potential attribute values,
+
+What we gonna do is that we have tokens. so we go find all the attributes options in db
+that has value equal to our tokens.
+for example for token 256 when we find it in db find that yes we have a option with the value 512.
+As of now the result we are getting is,
+Potential attribute values: [ 'iphone', '16', 'pro', '256', 'gb', 'natural', 'titanium' ]
+
+Now the problem in this result is that gb can be valid option, 'natural' &  'titanium' are. 'pro' also
+cant be 'iphone' can be a option.
+So what we want is that we want our tokens to be the valid options only that are in table,
+so that when we actually find the products we can match the products who matching options.
+
+Also Potential names can be only tokens that have length more then 2
+
+
+
+=== Processing search query: "Iphone 16 Pro | 256 GB | Natural Titanium" ===
+
+Final parsed query structure:
+{}
+Normalized query: "iphone 16 pro | 256 gb | natural titanium"
+Tokens: [
+  'iphone',   '16',
+  'pro',      '|',
+  '256',      'gb',
+  '|',        'natural',
+  'titanium'
+]
+Matched categories: []
+Potential names: [
+  'iphone',
+  'iphone 16',
+  'iphone 16 pro',
+  'iphone 16 pro |',
+  'iphone 16 pro | 256',
+  'iphone 16 pro | 256 gb',
+  'iphone 16 pro | 256 gb |',
+  'iphone 16 pro | 256 gb | natural',
+  'iphone 16 pro | 256 gb | natural titanium',
+  '16',
+  '16 pro',
+  '16 pro |',
+  '16 pro | 256',
+  '16 pro | 256 gb',
+  '16 pro | 256 gb |',
+  '16 pro | 256 gb | natural',
+  '16 pro | 256 gb | natural titanium',
+  'pro',
+  'pro |',
+  'pro | 256',
+  'pro | 256 gb',
+  'pro | 256 gb |',
+  'pro | 256 gb | natural',
+  'pro | 256 gb | natural titanium',
+  '|',
+  '| 256',
+  '| 256 gb',
+  '| 256 gb |',
+  '| 256 gb | natural',
+  '| 256 gb | natural titanium',
+  '256',
+  '256 gb',
+  '256 gb |',
+  '256 gb | natural',
+  '256 gb | natural titanium',
+  'gb',
+  'gb |',
+  'gb | natural',
+  'gb | natural titanium',
+  '|',
+  '| natural',
+  '| natural titanium',
+  'natural',
+  'natural titanium',
+  'titanium'
+]
+Potential attribute values: [ 'iphone', '16', 'pro', '256', 'gb', 'natural', 'titanium' ]
+General search terms: [ '|', '|' ]
+
+
+
+
+q -> phone 16 Pro | 256 GB | Natural Titanium
+in token we had 'natural' and 'titanium' & 'natural titanium' and  both, which is expected.
+for Valid attribute options,
+
+we consider 'natural titanium' over any other sub tokens because its 'natural titanium' is exact matching
+options, then why we consider sub token.
+So we need to improve this. 
+
+
+Ok so at this point i realize that everyting is about tokenization.
+
+q -> 'phone 16 Pro | 256 GB | Natural Titanium'
+we start to make token of length 2 or more.
+longest token will be the q itself.
+
+Now,
+
+We have three place where we are gonna try to match our tokens in our db,
+
+1. all the categories names so see if any of our category matches our token.-> this will give our search categories that we are expecting in our final result.
+2. if all the variants in variants table have their name matching any of our token or not. In this case we are gonna start with the longest token.
+    we also need to normalize the table's variant's name so that it can match our token. ->  this may give us a exact product we are looking.
+
+3. so above two cases handled the name matching. But it might be case that we dont have matching name 
+   but our variants can have options associated to them which are related to our token.
+   for example our token had 512 and a variant can have option 512 for its attribute storage,
+   or price 512...
+
+
+so if we can crack the above three  steps we can have a good search functionality.      
+
+
+
+
+
+
+let get things straight.
+in return response onject we need two arrays
+{
+  products:
+  categories:
+}
+
+
+for categories its simple. if we have matching token that matches our db category
+then we have our result. Note 'smartphone' and 'smartphones' are one and searching one of then should return the result.
+
+
+so now we are left with searching our products.
+
+first priority,
+if any of our token matches variants name we have our result.
+So we start with longest token to find the exact match, if we dont have then we try to match
+the other tokens.
+
+for example
+q -> 'Iphone 16 Pro | 256 GB | Natural Titanium'
+if we have variant with that exact name the its our result.
+
+if q -> 'Iphone 16 Pro | Natural Titanium'
+then we dont have the exact match but we have mulitple variants with subsequence match like,
+
+Iphone 16 Pro | 1 TB | Natural Titanium
+Iphone 16 Pro | 512 GB | Natural Titanium
+Iphone 16 Pro | 128 GB | Natural Titanium
+Iphone 16 Pro | 256 GB | Natural Titanium
+
+
+Now if we dont have name matches then its time to match the vairants
+who has options associated with them from our tokens.
+So when we make tokens we find all the tokens which are valid(token which are real options in db).
+
+now we find all the vairants who has options token associated with them.
+for example,
+q -> '512 GB  Natural Titanium'
+
+valid  options token [512, 'Titanium', 'Natural', 'Natural Titanium']
+
+so starting with the longest valid option token we find.
+Now we have so we find that 'Natural Titanium' is most appropriate and we have,below variants in db
+Iphone 16 Pro | 1 TB | Natural Titanium
+Iphone 16 Pro | 512 GB | Natural Titanium
+Iphone 16 Pro | 128 GB | Natural Titanium
+Iphone 16 Pro | 256 GB | Natural Titanium
+
+final response={
+
+  categories : this will always be searched separately,
+  products : first try to find exact name or subsequence if not then move to match vairants based on options
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
