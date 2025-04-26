@@ -412,16 +412,16 @@ const ProductAddForm: React.FC<ProductAddFormProps> = ({
                         src={typeof img === "string" ? img : img.url}
                         alt={`Variant ${index}`}
                         fill={true}
-                        className="w-full h-full object-cover rounded border border-[#D0D5DD]"
+                        className="w-full h-full object-contain rounded border border-[#D0D5DD]"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute w-[20px] h-[20px] flex items-center justify-center top-1 right-1 bg-white/80 rounded-full border border-[#D0D5DD] cursor-pointer"
+                        className="absolute top-1 right-1 w-[20px] h-[20px] bg-red-400 rounded-full flex items-center justify-center cursor-pointer"
                       >
                         <Icon
                           icon="lucide:x"
-                          className="w-3 h-3 text-[#D92D20]"
+                          className="w-[50%] h-[50%] text-white"
                         />
                       </button>
                     </div>

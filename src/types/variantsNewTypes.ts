@@ -28,6 +28,12 @@ export interface VariantAttribute {
   optionValue: string;
 }
 
+export interface VariantImage {
+  id: number;
+  order: number;
+  url: string;
+}
+
 export interface Variant {
   id?: number;
   sku: string;
@@ -37,7 +43,8 @@ export interface Variant {
   stock: number;
   status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
   attributes: VariantAttribute[];
-  images: { url: string; publicId: string; order: number }[];
+  images: VariantImage[];
+  newImages: File[];
 }
 
 export interface ProductVariantData {
@@ -57,13 +64,23 @@ export interface GeneratedVariant {
 }
 
 export interface CreateVariantPayload {
-  productId: number;
-  name: string;
-  slug: string;
-  sku: string;
-  price: number;
-  stock: number;
-  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
-  attributes: { attributeId: number; optionId: number }[];
-  newImages: { file: File; order: number }[];
+  variants: {
+    productId: number;
+    name: string;
+    slug: string;
+    sku: string;
+    price: number;
+    stock: number;
+    status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+    attributes: {
+      attributeId: number;
+      optionId: number;
+    }[];
+  }[];
+  colorImages: {
+    [optionId: number]: {
+      file: File;
+      order: number;
+    }[];
+  };
 }

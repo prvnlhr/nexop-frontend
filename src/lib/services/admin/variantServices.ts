@@ -189,13 +189,21 @@ export async function fetchProductVariantsData(productId: number | string) {
 
 // createProductVariants
 export async function createProductVariants(
-  variantsData: CreateVariantPayload[]
+  variantsData: CreateVariantPayload
 ) {
   try {
-    const createPromises = variantsData.map(async (variant) => {
-      // 1. Upload images to Cloudinary
+    // 1. Upload unique images from colorImages
+    const uploadedImagesByOptionId: {
+      [optionId: number]: { url: string; publicId: string; order: number }[];
+    } = {};
+    for (const optionId in variantsData.colorImages) {
+      const images = variantsData.colorImages[optionId];
+      // Deduplicate by file.name
+      const uniqueImages = Array.from(
+        new Map(images.map((img) => [img.file.name, img])).values()
+      );
       const uploadResults = await Promise.all(
-        variant.newImages.map(async (image) => {
+        uniqueImages.map(async (image) => {
           const result = await uploadToCloudinary(image.file);
           return {
             url: result.secure_url,
@@ -204,11 +212,30 @@ export async function createProductVariants(
           };
         })
       );
-      // 2. Prepare the payload for the API
+      uploadedImagesByOptionId[optionId] = uploadResults;
+    }
+
+    // 2. Create variants with pre-uploaded image metadata
+    const createPromises = variantsData.variants.map(async (variant) => {
+      // Find the color optionId
+      const colorAttr = variant.attributes.find((attr) =>
+        variantsData.variants.some((v) =>
+          v.attributes.some(
+            (a) =>
+              a.attributeId === attr.attributeId &&
+              Number(a.optionId) in variantsData.colorImages
+          )
+        )
+      );
+      const images = colorAttr
+        ? uploadedImagesByOptionId[colorAttr.optionId] || []
+        : [];
+
+      // Prepare the payload for the API
       const variantPayload = {
         productId: variant.productId,
         name: variant.name,
-        slug: variant.slug || variant.name.toLowerCase().replace(/\s+/g, "-"), // Fallback slug if empty
+        slug: variant.slug || variant.name.toLowerCase().replace(/\s+/g, "-"),
         sku: variant.sku,
         price: variant.price,
         stock: variant.stock,
@@ -217,10 +244,10 @@ export async function createProductVariants(
           attributeId: attr.attributeId,
           optionId: attr.optionId,
         })),
-        images: uploadResults,
+        images,
       };
 
-      // 3. Call the API to create the variant
+      // Call the API to create the variant
       const response = await fetch(`${BASE_URL}/api/admin/variants`, {
         method: "POST",
         headers: {
@@ -244,6 +271,7 @@ export async function createProductVariants(
     const results = await Promise.all(createPromises);
     await revalidateTagHandler("productVariantsData");
     console.log("variant generation results:", results);
+    return results;
   } catch (error) {
     console.error("Create Variants Error:", error);
     throw new Error(
@@ -254,20 +282,30 @@ export async function createProductVariants(
   }
 }
 
-interface UpdateVariantPayload {
-  id: number;
-  name: string;
-  slug: string;
-  sku: string;
-  price: number;
-  stock: number;
-  status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
-  attributes: { attributeId: number; optionId: number }[];
-  images: { url: string; publicId?: string; order: number; file?: File }[];
-  deletedPublicIds: string[];
+export interface UpdateVariantPayload {
+  variants: {
+    id: number;
+    name: string;
+    slug: string;
+    sku: string;
+    price: number;
+    stock: number;
+    status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+    attributes: {
+      attributeId: number;
+      optionId: number;
+    }[];
+  }[];
+  colorImages: {
+    [optionId: number]: {
+      newImages: { file: File; order: number }[];
+      existingImages: { url: string; publicId: string; order: number }[];
+      deletedPublicIds: string[];
+    };
+  };
 }
 
-interface ControllerUpdateVariantPayload {
+export interface ControllerUpdateVariantPayload {
   id: number;
   name: string;
   slug: string;
@@ -279,60 +317,77 @@ interface ControllerUpdateVariantPayload {
   images: { url: string; publicId: string; order: number }[];
 }
 
-// updateProductVariants
 export async function updateProductVariants(
-  variantsData: UpdateVariantPayload[]
+  variantsData: UpdateVariantPayload
 ) {
   try {
-    // 1. Process all variants: upload new images and delete removed images
-    const variantPayloads: ControllerUpdateVariantPayload[] = await Promise.all(
-      variantsData.map(async (variant) => {
-        // Upload new images to Cloudinary and prepare final images array
-        const finalImages = await Promise.all(
-          variant.images.map(async (image) => {
-            if (image.file) {
-              // New image: upload to Cloudinary
-              const result = await uploadToCloudinary(image.file);
-              return {
-                url: result.secure_url,
-                publicId: result.public_id, // Use Cloudinary's public_id
-                order: image.order,
-              };
-            }
-            // Existing image: keep as is, but warn if publicId looks incorrect
-            if (
-              image.publicId &&
-              !image.publicId.startsWith("nexop/products/")
-            ) {
-              console.warn(
-                `Invalid publicId for existing image: ${image.publicId}`
-              );
-            }
-            return {
-              url: image.url,
-              publicId: image.publicId!, // publicId should exist for db images
-              order: image.order,
-            };
-          })
+    // 1. Process colorImages: upload new images and delete removed images
+    const uploadedImagesByOptionId: {
+      [optionId: number]: { url: string; publicId: string; order: number }[];
+    } = {};
+    const deletedPublicIds = new Set<string>();
+
+    for (const optionId in variantsData.colorImages) {
+      const {
+        newImages,
+        existingImages,
+        deletedPublicIds: deletedIds,
+      } = variantsData.colorImages[optionId];
+
+      // Deduplicate new images by file.name
+      const uniqueNewImages = Array.from(
+        new Map(newImages.map((img) => [img.file.name, img])).values()
+      );
+
+      // Upload new images
+      const uploadResults = await Promise.all(
+        uniqueNewImages.map(async (image) => {
+          const result = await uploadToCloudinary(image.file);
+          return {
+            url: result.secure_url,
+            publicId: result.public_id,
+            order: image.order,
+          };
+        })
+      );
+
+      // Combine existing and new images
+      uploadedImagesByOptionId[optionId] = [
+        ...existingImages,
+        ...uploadResults,
+      ].sort((a, b) => a.order - b.order);
+
+      // Collect unique deletedPublicIds
+      deletedIds.forEach((publicId) => deletedPublicIds.add(publicId));
+    }
+
+    // Delete removed images from Cloudinary
+    if (deletedPublicIds.size > 0) {
+      await Promise.all(
+        Array.from(deletedPublicIds).map(async (publicId) => {
+          try {
+            await deleteImage(publicId);
+          } catch (err) {
+            console.error(
+              `Failed to delete Cloudinary image ${publicId}:`,
+              err
+            );
+          }
+        })
+      );
+    }
+
+    // 2. Create variant payloads with pre-uploaded image metadata
+    const variantPayloads: ControllerUpdateVariantPayload[] =
+      variantsData.variants.map((variant) => {
+        // Find the color optionId
+        const colorAttr = variant.attributes.find(
+          (attr) => Number(attr.optionId) in variantsData.colorImages
         );
+        const images = colorAttr
+          ? uploadedImagesByOptionId[colorAttr.optionId] || []
+          : [];
 
-        // Delete removed images from Cloudinary
-        if (variant.deletedPublicIds.length > 0) {
-          await Promise.all(
-            variant.deletedPublicIds.map(async (publicId) => {
-              try {
-                await deleteImage(publicId);
-              } catch (err) {
-                console.error(
-                  `Failed to delete Cloudinary image ${publicId}:`,
-                  err
-                );
-              }
-            })
-          );
-        }
-
-        // Prepare payload for the API
         return {
           id: variant.id,
           name: variant.name,
@@ -345,12 +400,11 @@ export async function updateProductVariants(
             attributeId: attr.attributeId,
             optionId: attr.optionId,
           })),
-          images: finalImages,
+          images,
         };
-      })
-    );
+      });
 
-    // 2. Send a single PATCH request with all payloads
+    // 3. Send a single PATCH request with all payloads
     const response = await fetch(`${BASE_URL}/api/admin/variants`, {
       method: "PATCH",
       headers: {
@@ -369,7 +423,7 @@ export async function updateProductVariants(
 
     await revalidateTagHandler("productVariantsData");
     console.log("Variant update results:", result);
-    return result; // Returns { message: "Variants updated successfully" }
+    return result;
   } catch (error) {
     console.error("Update Variants Error:", error);
     throw new Error(

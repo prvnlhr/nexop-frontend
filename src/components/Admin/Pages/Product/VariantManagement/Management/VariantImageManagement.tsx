@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// File: frontend/src/components/Management/VariantImageManagement.tsx
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useVariantManagementContext } from "@/context/VariantManagementContext";
@@ -27,26 +28,30 @@ const VariantImageManagement: React.FC<VariantImageManagementProps> = ({
     (attr) => attr.name.toLowerCase() === "color"
   );
 
-  // Get color option IDs for existing variants
-  const existingColorOptionIds = new Set(
-    variants
-      .map((variant) =>
-        variant.attributes.find(
-          (attr) => attr.attributeName.toLowerCase() === "color"
+  // Memoize existingColorOptionIds to ensure stability
+  const existingColorOptionIds = useMemo(() => {
+    return new Set(
+      variants
+        .map((variant) =>
+          variant.attributes.find(
+            (attr) => attr.attributeName.toLowerCase() === "color"
+          )
         )
-      )
-      .filter((attr): attr is NonNullable<typeof attr> => attr !== undefined)
-      .map((attr) => attr.optionId)
-  );
+        .filter((attr): attr is NonNullable<typeof attr> => attr !== undefined)
+        .map((attr) => attr.optionId)
+    );
+  }, [variants]);
 
-  // Get color options for new variants only in generate mode
-  const colorOptions = colorAttribute
-    ? pageType === "generate"
-      ? colorAttribute.options.filter(
-          (opt) => opt.selected && !existingColorOptionIds.has(opt.id)
-        )
-      : colorAttribute.options
-    : [];
+  // Memoize colorOptions to prevent recomputation on every render
+  const colorOptions = useMemo(() => {
+    return colorAttribute
+      ? pageType === "generate"
+        ? colorAttribute.options.filter(
+            (opt) => opt.selected && !existingColorOptionIds.has(opt.id)
+          )
+        : colorAttribute.options
+      : [];
+  }, [colorAttribute, pageType, existingColorOptionIds]);
 
   // Set default activeColorTab to the first color option
   useEffect(() => {
@@ -153,24 +158,27 @@ const VariantImageManagement: React.FC<VariantImageManagementProps> = ({
                 {colorImages[activeColorTab].images.map((image, index) => (
                   <div
                     key={`${image.url}-${index}`}
-                    className="relative w-[100%] aspect-square border border-[#D0D5DD] rounded"
+                    className="relative w-[100%] aspect-square border border-[#D0D5DD] p-[5px] rounded"
                   >
-                    <Image
-                      src={image.url}
-                      alt={`Image ${index}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100px, 100px"
-                    />
-                    <button
-                      onClick={() => removeColorImage(activeColorTab, index)}
-                      className="absolute top-1 right-1 w-[20px] h-[20px] bg-red-400 rounded-full flex items-center justify-center"
-                    >
-                      <Icon
-                        icon="lucide:x"
-                        className="w-[50%] h-[50%] text-white"
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      <Image
+                        src={image.url}
+                        alt={`Image ${index}`}
+                        fill={true}
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100px, 100px"
                       />
-                    </button>
+
+                      <button
+                        onClick={() => removeColorImage(activeColorTab, index)}
+                        className="absolute top-1 right-1 w-[20px] h-[20px] bg-red-400 rounded-full flex items-center justify-center cursor-pointer"
+                      >
+                        <Icon
+                          icon="lucide:x"
+                          className="w-[50%] h-[50%] text-white"
+                        />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

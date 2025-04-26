@@ -1,6 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { ProductVariantData } from "@/types/variantsNewTypes";
+import {
+  CreateVariantPayload,
+  ProductVariantData,
+} from "@/types/variantsNewTypes";
 import VariantsTable from "../Management/VariantsTable";
 import AttributesManagement from "../Management/AttributesManagement";
 import EditVariantDetailsForm from "../Management/EditVariantDetailsForm";
@@ -61,45 +64,51 @@ const GenerateVariantsPage: React.FC<GenerateVariantsPageProps> = ({
       return;
     }
 
-    const payload = generatedVariants.map((variant) => {
-      const colorAttr = variant.attributes.find(
-        (attr) => attr.attributeName.toLowerCase() === "color"
-      );
-      const images =
-        colorAttr && colorImages[colorAttr.optionId]
-          ? colorImages[colorAttr.optionId].images
-              .filter((img) => img.source === "client" && img.file)
-              .map((img, index) => ({ file: img.file!, order: index }))
-          : [];
-
-      return {
-        productId: productData.id,
-        name: variant.name,
-        slug: variant.slug,
-        sku: variant.sku,
-        price: variant.price,
-        stock: variant.stock,
-        status: variant.status,
-        attributes: variant.attributes.map((attr) => ({
-          attributeId: attr.attributeId,
-          optionId: attr.optionId,
-        })),
-        newImages: images,
-      };
-    });
-
     try {
       setError(null);
       setIsLoading(true);
+
+      // Construct colorImages payload
+      const colorImagesPayload: CreateVariantPayload["colorImages"] = {};
+      Object.entries(colorImages).forEach(([optionId, data]) => {
+        colorImagesPayload[Number(optionId)] = data.images
+          .filter((img) => img.source === "client" && img.file)
+          .map((img, index) => ({
+            file: img.file!,
+            order: index,
+          }));
+      });
+
+      // Construct payload
+      const payload: CreateVariantPayload = {
+        variants: generatedVariants.map((variant) => ({
+          productId: productData.id,
+          name: variant.name,
+          slug: variant.slug,
+          sku: variant.sku,
+          price: variant.price,
+          stock: variant.stock,
+          status: variant.status,
+          attributes: variant.attributes.map((attr) => ({
+            attributeId: attr.attributeId,
+            optionId: attr.optionId,
+          })),
+        })),
+        colorImages: colorImagesPayload,
+      };
+
+      console.log("payload:", JSON.stringify(payload, null, 2));
       const res = await createProductVariants(payload);
       console.log("res:", res);
     } catch (error) {
-      console.log(error);
+      console.error("Save Variants Error:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to create variants"
+      );
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="w-full h-full flex">
       <div className="w-[70%] h-full flex flex-col p-[10px] overflow-y-scroll hide-scrollbar">

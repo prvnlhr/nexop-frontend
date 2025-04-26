@@ -5,7 +5,10 @@ import VariantsTable from "../Management/VariantsTable";
 import EditVariantDetailsForm from "../Management/EditVariantDetailsForm";
 import VariantImageManagement from "../Management/VariantImageManagement";
 import AttributesManagement from "../Management/AttributesManagement";
-import { ProductVariantData } from "@/types/variantsNewTypes";
+import {
+  ProductVariantData,
+  // UpdateVariantPayload,
+} from "@/types/variantsNewTypes";
 import { useVariantManagementContext } from "@/context/VariantManagementContext";
 import { updateProductVariants } from "@/lib/services/admin/variantServices";
 
@@ -13,6 +16,28 @@ interface ManageVariantsPageProps {
   productVariantsData: ProductVariantData;
 }
 
+interface UpdateVariantPayload {
+  variants: {
+    id: number;
+    name: string;
+    slug: string;
+    sku: string;
+    price: number;
+    stock: number;
+    status: "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK";
+    attributes: {
+      attributeId: number;
+      optionId: number;
+    }[];
+  }[];
+  colorImages: {
+    [optionId: number]: {
+      newImages: { file: File; order: number }[];
+      existingImages: { url: string; publicId: string; order: number }[];
+      deletedPublicIds: string[];
+    };
+  };
+}
 const ManageVariantsPage: React.FC<ManageVariantsPageProps> = ({
   productVariantsData,
 }) => {
@@ -28,7 +53,6 @@ const ManageVariantsPage: React.FC<ManageVariantsPageProps> = ({
     variants,
     initializeColorImages,
     colorImages,
-    // resetContext,
   } = useVariantManagementContext();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -67,43 +91,40 @@ const ManageVariantsPage: React.FC<ManageVariantsPageProps> = ({
     initializeColorImages(existingVariants);
   }, [existingVariants, initializeColorImages]);
 
-  // useEffect(() => {
-  //   resetContext(productVariantsData);
-  // }, [productVariantsData, resetContext]);
-
   const handleUpdateVariants = async () => {
     setError(null);
     setIsLoading(true);
     try {
-      const payloads = variants.map((variant) => {
-        const colorAttr = variant.attributes.find(
-          (attr) => attr.attributeName.toLowerCase() === "color"
-        );
-        const colorOptionId = colorAttr?.optionId;
-        const colorImagesData = colorOptionId
-          ? colorImages[colorOptionId]
-          : null;
+      // Construct colorImages payload
+      const colorImagesPayload: UpdateVariantPayload["colorImages"] = {};
+      Object.entries(colorImages).forEach(([optionId, data]) => {
+        const newImages = data.images
+          .filter((img) => img.source === "client" && img.file)
+          .map((img, index) => ({
+            file: img.file!,
+            order: data.images.filter((i) => i.source === "db").length + index,
+          }));
+        const existingImages = data.images
+          .filter(
+            (img) =>
+              img.source === "db" &&
+              !data.deletedPublicIds?.includes(img.publicId || "")
+          )
+          .map((img, index) => ({
+            url: img.url,
+            publicId: img.publicId!,
+            order: index,
+          }));
+        colorImagesPayload[Number(optionId)] = {
+          newImages,
+          existingImages,
+          deletedPublicIds: data.deletedPublicIds || [],
+        };
+      });
 
-        // Combine existing (db) and new (client) images, excluding deleted ones
-        const images = colorImagesData
-          ? colorImagesData.images
-              .filter(
-                (img) =>
-                  (img.source === "db" &&
-                    !colorImagesData.deletedPublicIds?.includes(
-                      img.publicId || ""
-                    )) ||
-                  (img.source === "client" && img.file)
-              )
-              .map((img, index) => ({
-                url: img.url,
-                publicId: img.source === "db" ? img.publicId : undefined, // Use db publicId for existing, undefined for new
-                order: index,
-                file: img.source === "client" ? img.file : undefined, // Include file for new images
-              }))
-          : [];
-
-        return {
+      // Construct payload
+      const payload: UpdateVariantPayload = {
+        variants: variants.map((variant) => ({
           id: variant.id!,
           name: variant.name,
           slug: variant.slug,
@@ -115,17 +136,13 @@ const ManageVariantsPage: React.FC<ManageVariantsPageProps> = ({
             attributeId: attr.attributeId,
             optionId: attr.optionId,
           })),
-          images,
-          deletedPublicIds: colorImagesData
-            ? colorImagesData.deletedPublicIds || []
-            : [],
-        };
-      });
+        })),
+        colorImages: colorImagesPayload,
+      };
 
-      // console.log("payloads", payloads);
-      // return;
-      const res = await updateProductVariants(payloads);
-      console.log(" res:", res);
+      console.log("payload:", JSON.stringify(payload, null, 2));
+      const res = await updateProductVariants(payload);
+      console.log("res:", res);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to update variants"
