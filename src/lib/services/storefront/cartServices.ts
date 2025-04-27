@@ -25,7 +25,7 @@ export interface CartOperationRequest {
 }
 
 const BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com/";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com";
 
 // Service Functions
 export async function addToCart(

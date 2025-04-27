@@ -11,7 +11,7 @@ import {
 import { deleteImage, uploadToCloudinary } from "@/utils/cloudinaryConfig";
 
 const BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com/";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com";
 
 // FETCH  ALL VARIANTS ---------------------------------------------------------------------------------------
 export async function getProductVariants(productId: number | string) {

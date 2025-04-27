@@ -2,7 +2,7 @@ import { ProductFormData } from "@/hooks/useProductForm";
 import { uploadToCloudinary } from "@/utils/cloudinaryConfig";
 
 const BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com/";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com";
 
 interface CreateProductPayload {
   name: string;
