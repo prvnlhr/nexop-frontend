@@ -28,6 +28,7 @@ export interface VariantImage {
   id: number;
   url: string;
   order: number;
+  publicId?: string;
 }
 
 export interface VariantAttribute {

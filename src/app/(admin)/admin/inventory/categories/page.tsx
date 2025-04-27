@@ -4,9 +4,8 @@ import { Category } from "@/types/categoryTypes";
 import React from "react";
 
 const page = async () => {
-    const categories: Category[] = await getCategories();
-
-  return <CategoryPage categories={categories}/>;
+  const categories: Category[] = await getCategories();
+  return <CategoryPage categories={categories} />;
 };
 
 export default page;

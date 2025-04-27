@@ -5,7 +5,7 @@ import React from "react";
 
 const page = async () => {
   const categories: Category[] = await getCategories();
-  return <AttributeAddForm categories={categories}/>;
+  return <AttributeAddForm categories={categories} isEditMode={false} />;
 };
 
 export default page;

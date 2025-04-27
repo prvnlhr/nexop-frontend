@@ -29,9 +29,10 @@ export interface VariantAttribute {
 }
 
 export interface VariantImage {
-  id: number;
+  id?: number;
   order: number;
   url: string;
+  publicId?: string;
 }
 
 export interface Variant {

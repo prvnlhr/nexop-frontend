@@ -18,17 +18,18 @@ export async function getCheckOutDetails(
       },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || errorData.message || "Failed to get checkout details"
-      );
-    }
+    // if (!response.ok) {
+    //   const errorData = await response.json();
+    //   console.log(" errorData:", errorData);
+    //   throw new Error(
+    //     errorData.error || errorData.message || "Failed to get checkout details"
+    //   );
+    // }
 
     const result = await response.json();
     return result.data;
   } catch (error) {
-    console.error("Add to Cart Error:", error);
+    console.error("Checkout detail error:", error);
     throw error instanceof Error
       ? error
       : new Error("Failed to get checkout details");

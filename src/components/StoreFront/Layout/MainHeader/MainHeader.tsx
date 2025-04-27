@@ -26,7 +26,9 @@ const MainHeader = () => {
     products: [],
   });
   const [isSearching, setIsSearching] = useState(false);
-  console.log(" isSearching:", isSearching);
+  if (isSearching) {
+    console.log(" isSearching:", isSearching);
+  }
 
   useEffect(() => {
     const handleResize = () => {

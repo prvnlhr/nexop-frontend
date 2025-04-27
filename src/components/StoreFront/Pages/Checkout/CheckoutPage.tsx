@@ -10,7 +10,6 @@ import LoadingSpinner from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/context/ToastContext";
 import { loadStripe } from "@stripe/stripe-js";
 import { createCheckoutSession } from "@/actions/payment/stripePaymentAction";
-import { useParams, useSearchParams } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -28,20 +27,27 @@ const stripePromise = loadStripe(
 type FormValues = z.infer<typeof formSchema>;
 
 interface CheckoutPageProps {
+  userId: string;
   checkoutData: CheckoutData;
+  queryParams: {
+    type?: string;
+    product_id?: string;
+    variant_id?: string;
+  };
 }
-const CheckoutPage: React.FC<CheckoutPageProps> = ({ checkoutData }) => {
-  const { total } = checkoutData;
+const CheckoutPage: React.FC<CheckoutPageProps> = ({
+  checkoutData,
+  userId,
+  queryParams: searchParams,
+}) => {
+  const { total } = checkoutData || 0;
   const { showToast } = useToast();
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
-  const params = useParams();
-  const searchParams = useSearchParams();
 
-  const userId = params.userId as string;
   const queryParams = {
-    type: searchParams.get("type") || "",
-    product_id: searchParams.get("product_id") || "",
-    variant_id: searchParams.get("variant_id") || "",
+    type: searchParams.type || "",
+    product_id: searchParams.product_id || "",
+    variant_id: searchParams.variant_id || "",
   };
 
   const {
@@ -268,43 +274,44 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ checkoutData }) => {
         </section>
         <section className="w-[100%] h-[100%] p-[5px] border-red-500">
           <div className="w-full h-full flex flex-col p-[20px]">
-            {checkoutData.items.map((item) => (
-              <div
-                key={item.id}
-                className="w-full h-auto grid grid-cols-[30%_70%]  border-black/10 p-[5px]"
-              >
-                <div className="w-[100%] h-[100%]  border-red-500">
-                  <div className="w-[80%] aspect-square relative flex items-center justify-center bg-gray-100 rounded border border-black/10 overflow-hidden">
-                    <Image
-                      src={item.image}
-                      alt={item.variantName}
-                      fill={true}
-                    />
+            {checkoutData.items.length > 0 &&
+              checkoutData.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="w-full h-auto grid grid-cols-[30%_70%]  border-black/10 p-[5px]"
+                >
+                  <div className="w-[100%] h-[100%]  border-red-500">
+                    <div className="w-[80%] aspect-square relative flex items-center justify-center bg-gray-100 rounded border border-black/10 overflow-hidden">
+                      <Image
+                        src={item.image}
+                        alt={item.variantName}
+                        fill={true}
+                      />
+                    </div>
+                  </div>
+                  <div className="w-[100%] h-[100%] flex flex-col border-green-500">
+                    <div className="w-full h-[40px] flex items-center mb-[5px]">
+                      <p className="text-[0.8rem]">{item.variantName}</p>
+                    </div>
+                    <div className="w-full h-auto flex flex-wrap items-center">
+                      {item.attributes.map((atrr, attrIndex) => (
+                        <div
+                          key={attrIndex}
+                          className="w-auto h-[auto] flex items-center mr-[8px] mb-[5px]"
+                        >
+                          <p className="text-[0.7rem] text-gray-500">
+                            {atrr.attributeName}
+                          </p>
+                          <span className="text-[0.7rem] mx-[2px]">:</span>
+                          <p className="text-[0.7rem] font-medium">
+                            {atrr.optionValue}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="w-[100%] h-[100%] flex flex-col border-green-500">
-                  <div className="w-full h-[40px] flex items-center mb-[5px]">
-                    <p className="text-[0.8rem]">{item.variantName}</p>
-                  </div>
-                  <div className="w-full h-auto flex flex-wrap items-center">
-                    {item.attributes.map((atrr, attrIndex) => (
-                      <div
-                        key={attrIndex}
-                        className="w-auto h-[auto] flex items-center mr-[8px] mb-[5px]"
-                      >
-                        <p className="text-[0.7rem] text-gray-500">
-                          {atrr.attributeName}
-                        </p>
-                        <span className="text-[0.7rem] mx-[2px]">:</span>
-                        <p className="text-[0.7rem] font-medium">
-                          {atrr.optionValue}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </section>
       </div>

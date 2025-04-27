@@ -1,33 +1,33 @@
 "use client";
 import AuthForm from "@/components/Common/Auth/AuthForm";
 import { useSession } from "@/lib/auth/useSession";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import React from "react";
 
-export default function SignInPage() {
+interface SignInPageProps {
+  redirectURL?: string;
+}
+const SignInPage = ({ redirectURL = "/shop" }: SignInPageProps) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user } = useSession();
-  const redirectParam = searchParams.get("redirect") || "/shop";
 
   const reconstructRedirect = () => {
-    if (!user?.id) return redirectParam;
+    if (!user?.id) return redirectURL;
 
     // Handle cases where the redirect contains placeholder paths
-    if (redirectParam.includes("/user/cart")) {
-      return redirectParam.replace("/user/cart", `/user/${user.id}/cart`);
+    if (redirectURL.includes("/user/cart")) {
+      return redirectURL.replace("/user/cart", `/user/${user.id}/cart`);
     }
-    if (redirectParam.includes("/undefined")) {
-      return redirectParam.replace("/undefined", `/${user.id}`);
+    if (redirectURL.includes("/undefined")) {
+      return redirectURL.replace("/undefined", `/${user.id}`);
     }
 
-    return redirectParam;
+    return redirectURL;
   };
-
   const handleSuccess = () => {
     const finalRedirect = reconstructRedirect();
     router.push(finalRedirect);
   };
-
   return (
     <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px]">
       <div className="w-[100%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%] h-[100%] border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
@@ -58,4 +58,6 @@ export default function SignInPage() {
       </div>
     </div>
   );
-}
+};
+
+export default SignInPage;

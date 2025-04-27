@@ -16,7 +16,7 @@ const page = async ({ params }: { params: Params }) => {
   //console.log(" attributeEditData:", attributeEditData);
 
   const categories: Category[] = await getCategories();
-  console.log(" categories:", categories);
+  // console.log(" categories:", categories);
   return (
     <AttributeAddForm
       categories={categories}

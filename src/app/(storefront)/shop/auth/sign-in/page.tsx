@@ -1,8 +1,15 @@
 import SignInPage from "@/components/StoreFront/Auth/SignInPage";
-import React from "react";
+import React, { Suspense } from "react";
 
-const page = () => {
-  return <SignInPage />;
+type SearchParams = Promise<{ [key: string]: string | undefined }>;
+
+const Page = async ({ searchParams }: { searchParams: SearchParams }) => {
+  const { redirect } = await searchParams;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInPage redirectURL={redirect} />
+    </Suspense>
+  );
 };
 
-export default page;
+export default Page;

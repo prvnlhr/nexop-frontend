@@ -1,11 +1,14 @@
 "use client";
 import AuthForm from "@/components/Common/Auth/AuthForm";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
-export default function AdminSignInPage() {
+interface AdminSignInPageProps {
+  redirectURL?: string;
+}
+const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
+  redirectURL = "/admin/inventory/products",
+}) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/admin/inventory/products";
 
   return (
     <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px] border">
@@ -28,10 +31,12 @@ export default function AdminSignInPage() {
             isSignUp={false}
             role="admin"
             basePath="/admin/auth"
-            onSuccess={() => router.push(redirect)}
+            onSuccess={() => router.push(redirectURL)}
           />
         </section>
       </div>
     </div>
   );
-}
+};
+
+export default AdminSignInPage;

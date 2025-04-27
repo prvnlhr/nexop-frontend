@@ -22,8 +22,13 @@ const page = async ({
     userId,
     queryParams
   );
-  console.log(" checkoutData:", checkoutData);
-  return <CheckoutPage checkoutData={checkoutData} />;
+  return (
+    <CheckoutPage
+      checkoutData={checkoutData}
+      userId={userId}
+      queryParams={queryParams}
+    />
+  );
 };
 
 export default page;

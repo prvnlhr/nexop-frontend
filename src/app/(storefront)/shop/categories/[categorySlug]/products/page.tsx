@@ -19,7 +19,6 @@ const page = async ({
     categorySlug,
     productFiltersParams
   );
-  console.log(" productData:", productData);
 
   return <ProductPage data={productData} />;
 };

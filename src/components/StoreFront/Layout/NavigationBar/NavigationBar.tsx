@@ -64,7 +64,7 @@ const NavigationBar = () => {
 
   return (
     <div className="relative w-full h-[40px] flex items-center justify-center border-b border-black/10 z-50">
-      {/* <div className="w-auto h-full flex items-center justify-center">
+      <div className="w-auto h-full flex items-center justify-center">
         {categories.map((category, index) => (
           <div
             key={category.id}
@@ -145,7 +145,7 @@ const NavigationBar = () => {
             )}
           </div>
         ))}
-      </div> */}
+      </div>
     </div>
   );
 };
