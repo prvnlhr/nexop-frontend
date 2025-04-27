@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import AttributeAddForm from "@/components/Admin/Pages/Attribute/AttributeAddForm";
 import { getCategories } from "@/lib/services/admin/categoryServices";
 import { Category } from "@/types/categoryTypes";
