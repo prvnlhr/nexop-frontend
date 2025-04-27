@@ -1,4 +1,5 @@
-const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+const BASE_URL: string =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com/";
 
 export async function searchProducts(query: string) {
   const url = new URL(`${BASE_URL}/api/storefront/search`);

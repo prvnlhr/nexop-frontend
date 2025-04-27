@@ -1,4 +1,5 @@
-const BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+const BASE_URL: string =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://nexop-backend.onrender.com/";
 
 export async function getCheckOutDetails(
   userId: string,
