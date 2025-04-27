@@ -11,6 +11,7 @@ import {
   removeFromCart,
 } from "@/lib/services/storefront/cartServices";
 import { useRouter } from "next/navigation";
+import LoadingSpinner from "@/components/Common/LoadingSpinner";
 
 interface CartPageProps {
   initialCart: Cart;
@@ -142,7 +143,7 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
 
   return (
     <div className="w-full h-full flex justify-center p-[10px]">
-      <div className="w-[80%] h-[100%] grid grid-cols-1 grid-rows-[70vh_70vh] md:grid-cols-[70%_30%] md:grid-rows-[100%] p-[2px] overflow-y-scroll hide-scrollbar">
+      <div className="w-[95%] md:w-[80%] h-[100%] grid grid-cols-1 grid-rows-[70vh_70vh] md:grid-cols-[70%_30%] md:grid-rows-[100%] p-[2px] overflow-y-scroll hide-scrollbar">
         {/* Products Section */}
         <section className="w-[100%] h-[80%] flex flex-col border border-[#D0D5DD] rounded p-[5px]">
           <div className="w-full h-[50px] flex items-center px-[15px]">
@@ -186,7 +187,7 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
                       {/* Product Info Cell */}
                       <td className="h-[100px] text-[#1C3553] border-b border-[#D0D5DD] overflow-hidden p-[2px]">
                         <div className="w-[100%] h-[100%] flex items-center p-[10px]">
-                          <div className="relative h-[100%] aspect-[1/1] flex items-center justify-center bg-[#D9DBDF]">
+                          <div className="relative h-[100%] aspect-[1/1] flex items-center justify-center bg-[#FAFAFA]">
                             <Image
                               src={variant.image || testImg}
                               alt="product-img"
@@ -255,10 +256,9 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
                             </button>
                             <div className="h-full aspect-square flex items-center justify-center text-[0.7rem]">
                               {updatingItems[cartItem.id] ? (
-                                <Icon
-                                  icon="eos-icons:loading"
-                                  className="w-4 h-4"
-                                />
+                                <div className="w-[10px] h-[10px] flex items-center justify-center">
+                                  <LoadingSpinner />
+                                </div>
                               ) : (
                                 cartItem.quantity.toString().padStart(2, "0")
                               )}
@@ -283,13 +283,12 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
                             <button
                               onClick={() => handleRemoveItem(cartItem.id)}
                               disabled={removingItems[cartItem.id]}
-                              className="w-[20px] aspect-square flex items-center justify-center text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                              className="w-[20px] aspect-square flex items-center justify-center transition-colors cursor-pointer"
                             >
                               {removingItems[cartItem.id] ? (
-                                <Icon
-                                  icon="eos-icons:loading"
-                                  className="w-4 h-4"
-                                />
+                                <div className="w-[10px] h-[10px] flex items-center justify-center">
+                                  <LoadingSpinner />
+                                </div>
                               ) : (
                                 <Icon
                                   icon="ph:trash-simple-fill"
@@ -320,7 +319,7 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
 
         {/* Order Summary Section */}
         <section className="w-[100%] h-[100%] flex justify-center">
-          <div className="w-[80%] h-[100%] flex flex-col">
+          <div className="w-[95%] md:w-[80%] h-[100%] flex flex-col">
             <div className="w-full h-[50px] flex items-center">
               <p className="text-[0.8rem] mt-[6px] font-semibold">
                 ORDER SUMMARY

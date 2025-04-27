@@ -14,6 +14,15 @@
   --font-bold: 700;
   --font-extrabold: 800;
   --font-black: 900;
+
+  --scheme-color: #5890f7;
+}
+
+.scheme-bg {
+  background-color: var(--scheme-color);
+}
+.scheme-text {
+  color: var(--scheme-color);
 }
 
 .font-lufga {
@@ -51,8 +60,9 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* --background: linear-gradient(180deg, #e4f0ff -37.08%, #ffffff 100%); */
-    /* --background: #ffffff; */
-    --background: #fbfafe;
+    --background: #ffffff;
+    /* --background: #fbfafe; */
+    /* --background: #f8f6f5; */
     --foreground: #1c3553;
   }
 }
@@ -79,9 +89,8 @@ input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
   transition: background-color 5000s ease-in-out 0s;
-  -webkit-text-fill-color: #1c3553 !important;
   caret-color: #1c3553;
-  background-color: transparent;
+  background-color: transparent !important;
 }
 
 .hide-scrollbar {

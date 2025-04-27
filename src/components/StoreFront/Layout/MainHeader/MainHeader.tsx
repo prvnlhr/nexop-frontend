@@ -126,7 +126,7 @@ const MainHeader = () => {
   };
 
   return (
-    <div className="w-full h-[70px] flex justify-end border-b border-black/10">
+    <div className="w-full h-[70px] flex justify-end border-b border-black/10 bg-white">
       <section
         className={`w-auto h-full flex items-center pl-[15px] ${
           hideOthers ? "hidden md:flex" : "flex"
@@ -142,13 +142,13 @@ const MainHeader = () => {
         className="flex-1 h-full flex items-center justify-end pr-[20px] relative"
       >
         <div className="relative h-[100%] md:w-[500px] w-[90%] flex items-center justify-end">
-          <div className="flex-1 h-[70%] flex border-b border-black/10">
+          <div className="flex-1 h-[60%] flex border border-black/10">
             <div className="h-[100%] flex-1 flex items-center justify-center">
               <input
                 ref={searchInputRef}
-                className="w-full h-full text-[0.8rem] px-5 focus:outline-none"
+                className="w-full h-full text-[0.8rem] px-5 focus:outline-none placeholder:text-[#A2A8B2]"
                 value={searchQuery}
-                placeholder="Search products..."
+                placeholder="Search products, categories..."
                 onFocus={() => setActiveSearchBox(true)}
                 onChange={handleSearch}
               />

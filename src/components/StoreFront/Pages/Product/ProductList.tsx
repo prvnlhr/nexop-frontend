@@ -43,23 +43,25 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
             // href={`/shop/categories/${prod.category?.slug}/products/${prod.slug}`}
             href={getProductUrl(prod)}
             key={pId}
-            className="w-auto h-auto mb-[20px] flex flex-col self-start bg-white 
+            className="w-auto h-auto mb-[20px] flex flex-col self-start
             shadow-[0px_3px_5px_rgba(0,0,0,0.04)]
             hover:shadow-[0px_7px_29px_0px_rgba(100,100,111,0.2)]
             border border-black/10
             rounded"
           >
             <div className="w-full aspect-[1/1.1] p-[8px]">
-              <div className="relative w-full h-full bg-[#EFF1F3] overflow-hidden rounded p-[5px] border border-black/5">
-                {prod.image && (
-                  <Image
-                    fill={true}
-                    priority={true}
-                    src={prod.image}
-                    alt={prod.name}
-                    className="object-cover"
-                  />
-                )}
+              <div className="relative w-full h-full bg-[#F6F6F6] overflow-hidden rounded p-[20px] border border-black/10">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {prod.image && (
+                    <Image
+                      fill={true}
+                      priority={true}
+                      src={prod.image}
+                      alt={prod.name}
+                      className="object-contain"
+                    />
+                  )}
+                </div>
               </div>
             </div>
             <div className="w-full h-[auto] grid grid-rows-[auto_auto_auto] p-[10px]">

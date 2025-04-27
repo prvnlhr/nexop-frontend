@@ -5,6 +5,7 @@ import type {
   UploadApiResponse,
   DeleteApiResponse,
 } from "cloudinary";
+// import { loadManifestWithRetries } from "next/dist/server/load-components";
 
 const {
   NEXT_CLOUDINARY_CLOUD_NAME,
@@ -33,8 +34,7 @@ cloudinary.config({
 const uploadOptions: UploadApiOptions = {
   resource_type: "auto",
   folder: "/nexop/products",
-  format: "jpeg",
-  // transformation: [{ width: 150, height: 150, crop: 'limit' }],
+  format: "png",
 };
 
 // Upload function with typed parameters and return value
