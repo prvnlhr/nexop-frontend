@@ -5,6 +5,8 @@ import { ToastProvider } from "@/context/ToastContext";
 import { Toaster } from "sonner";
 import DynamicIcon from "@/components/Common/Toast/DynamicIcon";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
+import { SessionProvider } from "next-auth/react";
+
 const lufga = localFont({
   src: [
     {
@@ -115,7 +117,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${lufga.variable} antialiased`}>
-        <ToastProvider>{children}</ToastProvider>
+        <SessionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </SessionProvider>
         <Toaster
           position="top-right"
           expand={false}

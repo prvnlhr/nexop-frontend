@@ -29,25 +29,23 @@ interface ServerClient {
 
 export async function createServerClient(): Promise<ServerClient> {
   const cookieStore = await cookies();
-
   return {
     getSession: async (): Promise<UserSession> => {
       try {
-        const token = cookieStore.get("auth_token")?.value;
-        if (!token) return { user: null };
+        const authToken = cookieStore.get("auth_token")?.value;
+        if (!authToken) return { user: null };
 
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/session`,
           {
-            headers: { Cookie: `auth_token=${token}` },
+            method: "GET",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: `auth_token=${authToken}`,
+            },
           }
         );
-
-        if (!res.ok) {
-          throw new Error(
-            `Session validation failed with status ${res.status}`
-          );
-        }
 
         const data = await res.json();
         return data.data || { user: null };
@@ -62,8 +60,10 @@ export async function createServerClient(): Promise<ServerClient> {
           name: "session_data",
           value: JSON.stringify(session),
           httpOnly: false,
-          secure: process.env.NODE_ENV === "production",
-          maxAge: 60 * 5, // 5 minutes
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24,
         });
       } catch (error) {
         console.error("Failed to set session cookie:", error);

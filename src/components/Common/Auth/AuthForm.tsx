@@ -3,8 +3,8 @@ import Link from "next/link";
 import { FieldErrors, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn, signUp } from "@/lib/services/auth/authServices";
-
+import { signUp } from "@/lib/services/auth/authServices";
+import { signIn } from "next-auth/react";
 // Zod schemas
 const signInSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -51,12 +51,24 @@ const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
           role: "customer" | "admin";
         });
       } else {
-        await signIn({ ...data, role } as SignInFormData & {
-          role: "customer" | "admin";
+        // await signIn({ ...data, role } as SignInFormData & {
+        //   role: "customer" | "admin";
+        // });
+
+        const result = await signIn("credentials", {
+          email: data.email,
+          password: data.password,
+          role: role,
+          redirect: false,
         });
+
+        if (result?.error) {
+          throw new Error(result.error);
+        }
       }
       onSuccess();
     } catch (error) {
+      console.log(" error:", error);
       if (error instanceof Error) {
         // Handle specific error messages from the server
         const errorMessage = error.message;

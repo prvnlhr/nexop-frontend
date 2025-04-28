@@ -1,6 +1,6 @@
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createServerClient } from "./lib/auth/session";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,15 +11,9 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const auth = await createServerClient();
-  const { user } = await auth.getSession();
-
-  // Set session data for client components
-  if (user) {
-    await auth.setSession({ user });
-  } else {
-    response.cookies.delete("session_data");
-  }
+  // Get session using Auth.js
+  const session = await auth();
+  const user = session?.user;
 
   // 1. Handle unauthenticated users
   if (!user) {

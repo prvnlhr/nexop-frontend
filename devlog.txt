@@ -2860,8 +2860,9 @@ cant visit,
 
 
 problem,
+
 only admin can got /admin... routes
-but not if we are signed in as customer and tries to go to /admin/inventory/...
+but what if we are signed in as customer and tries to go to /admin/inventory/...
 then we are restricted but we can go to /admin/auth/sign-in and sign-up which is not intended.
 
 

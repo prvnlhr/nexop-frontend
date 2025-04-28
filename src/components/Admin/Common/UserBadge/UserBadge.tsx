@@ -1,23 +1,22 @@
-import { useSession } from "@/lib/auth/useSession";
-import { signOut } from "@/lib/services/auth/authServices";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 
 const UserBadge = () => {
   const router = useRouter();
-  const { user } = useSession();
+  const { data: session } = useSession();
+  const user = session?.user;
   const firstLetter = user?.fullname[0];
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = async () => {
-    if (isLoading) return; // Prevent multiple clicks
+    if (isLoading) return;
 
     setIsLoading(true);
 
     try {
-      await signOut();
-
+      signOut();
       switch (user?.role) {
         case "admin":
           router.push("/admin/auth/sign-in");

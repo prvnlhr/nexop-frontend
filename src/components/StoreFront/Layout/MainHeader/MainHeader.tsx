@@ -4,15 +4,16 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import UserBadge from "../../../Admin/Common/UserBadge/UserBadge";
 import Link from "next/link";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { useSession } from "@/lib/auth/useSession";
+// import { useSession } from "@/lib/auth/useSession";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchProducts } from "@/lib/services/storefront/searchService";
 import { SearchResult } from "@/types/storefront/searchResultTypes";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 const MainHeader = () => {
-  const { user } = useSession();
+  // const { user } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeSearchBox, setActiveSearchBox] = useState(false);
@@ -20,6 +21,8 @@ const MainHeader = () => {
   const [isMobile, setIsMobile] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const user = session?.user;
 
   const [searchResults, setSearchResults] = useState<SearchResult>({
     categories: [],
