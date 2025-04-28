@@ -4282,4 +4282,43 @@ final response={
 
 
 
+Electronics
+  - Mobile
+  - Earphones
+  - Gaming
+  - Laptop and Desktop
 
+
+Fashion
+ - MEN
+ - WOMEN
+   - Kurtas
+   - Sarees
+   - Jeans
+   -
+
+Appliances
+ - KITCHEN
+   - Microwave ovens
+   - Kettles
+   - Hand Blenders
+   - Coffer Makers
+   - Chimneys
+   - Sandwich makers
+   -
+ - SMALL HOME
+   - Irons
+   - Fans
+   - Vaccum cleaners
+   - 
+ - WASHING MACHINES
+ - AIR CONDITIONERS
+   - Inverter AC
+   - split
+   - Window
+ - TVs     
+   - Full HD
+   - Ultra HD (4K)
+   - Ultra HD (8K)
+   - Smart TVs
+   - OLED TVs

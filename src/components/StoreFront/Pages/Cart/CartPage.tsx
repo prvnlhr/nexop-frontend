@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import testImg from "../../../..//../public/assets/iPhone_16_Pro_Max_White_Titanium_PDP_Image_Position_1__en-IN_eba16b29-a280-4119-91a7-0a2432e06cdf_grande.webp";
 import Image from "next/image";
 import Link from "next/link";
-import { useSession } from "@/lib/auth/useSession";
 import { Cart } from "@/types/storefront/cartTypes";
 import {
   updateCartItem,
@@ -12,13 +11,15 @@ import {
 } from "@/lib/services/storefront/cartServices";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
+import { useSession } from "next-auth/react";
 
 interface CartPageProps {
   initialCart: Cart;
 }
 
 const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
-  const { user } = useSession();
+  const { data: session } = useSession();
+  const user = session?.user;
   const router = useRouter();
   const [cart, setCart] = useState(initialCart);
   const [updatingItems, setUpdatingItems] = useState<Record<string, boolean>>(
@@ -257,7 +258,7 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
                             <div className="h-full aspect-square flex items-center justify-center text-[0.7rem]">
                               {updatingItems[cartItem.id] ? (
                                 <div className="w-[10px] h-[10px] flex items-center justify-center">
-                                  <LoadingSpinner />
+                                  <LoadingSpinner ringColor={"black"} />
                                 </div>
                               ) : (
                                 cartItem.quantity.toString().padStart(2, "0")
@@ -287,7 +288,7 @@ const CartPage: React.FC<CartPageProps> = ({ initialCart }) => {
                             >
                               {removingItems[cartItem.id] ? (
                                 <div className="w-[10px] h-[10px] flex items-center justify-center">
-                                  <LoadingSpinner />
+                                  <LoadingSpinner ringColor={"black"} />
                                 </div>
                               ) : (
                                 <Icon

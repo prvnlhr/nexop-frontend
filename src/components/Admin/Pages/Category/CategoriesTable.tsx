@@ -67,14 +67,17 @@ const CategoriesTable: React.FC<CategoriesTableProps> = ({ categories }) => {
                       />
                     </div>
                   </Link>
-                  <button className="w-auto h-[30px] border flex items-center ml-[10px] rounded cursor-pointer">
+                  <Link
+                    href={`?modal=delete&categoryId=${category.id}`}
+                    className="w-auto h-[30px] border flex items-center ml-[10px] rounded cursor-pointer"
+                  >
                     <div className="flex-1 h-full flex items-center justify-center pl-[10px] text-[0.7rem] text-[#D92D20]">
                       Delete
                     </div>
                     <div className="h-full aspect-[1/1] flex items-center justify-center">
                       <Icon icon="lucide:trash" className="w-[45%] h-[45%]" />
                     </div>
-                  </button>
+                  </Link>
                 </div>
               </td>
             </tr>

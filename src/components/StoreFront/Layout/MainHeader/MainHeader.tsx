@@ -11,6 +11,7 @@ import { searchProducts } from "@/lib/services/storefront/searchService";
 import { SearchResult } from "@/types/storefront/searchResultTypes";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { Oval } from "react-loader-spinner";
 
 const MainHeader = () => {
   // const { user } = useSession();
@@ -163,16 +164,27 @@ const MainHeader = () => {
               className="h-[100%] aspect-square flex items-center justify-center hover:bg-gray-100"
               aria-label="Search"
             >
-              {searchResults ? (
+              {isSearching ? (
+                <Oval
+                  visible={true}
+                  color="#336CF3"
+                  secondaryColor="transparent"
+                  strokeWidth="3"
+                  ariaLabel="oval-loading"
+                  wrapperStyle={{}}
+                  wrapperClass="w-[15px] h-[15px] flex items-center justify-center"
+                />
+              ) : hasResults ? (
                 <Icon
-                  onClick={clearResults}
-                  icon={
-                    hasResults ? "iconamoon:close-duotone" : "mynaui:search"
-                  }
                   className="w-[40%] h-[40%] text-[#336CF3] cursor-pointer"
+                  onClick={clearResults}
+                  icon="iconamoon:close-duotone"
                 />
               ) : (
-                <Icon icon="iconoir:search" className="w-[18px] h-[18px]" />
+                <Icon
+                  icon="iconoir:search"
+                  className="w-[40%] h-[40%] text-[#336CF3]"
+                />
               )}
             </button>
           </div>

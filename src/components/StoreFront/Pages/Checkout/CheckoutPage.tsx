@@ -254,7 +254,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   `}
                 >
                   {isInitiatingPayment ? (
-                    <LoadingSpinner />
+                    <div className="w-[20px] h-[20px] flex items-center justify-center">
+                      <LoadingSpinner ringColor={"white"} />
+                    </div>
                   ) : (
                     <>
                       <p className="text-[0.8rem]">Checkout</p>
@@ -286,12 +288,15 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         src={item.image}
                         alt={item.variantName}
                         fill={true}
+                        className="object-contain"
                       />
                     </div>
                   </div>
                   <div className="w-[100%] h-[100%] flex flex-col border-green-500">
-                    <div className="w-full h-[40px] flex items-center mb-[5px]">
-                      <p className="text-[0.8rem]">{item.variantName}</p>
+                    <div className="w-full h-[40px] flex items-center mb-[5px] overflow-hidden">
+                      <p className="text-[0.8rem] truncate">
+                        {item.variantName}
+                      </p>
                     </div>
                     <div className="w-full h-auto flex flex-wrap items-center">
                       {item.attributes.map((atrr, attrIndex) => (
@@ -308,6 +313,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                           </p>
                         </div>
                       ))}
+                    </div>
+                    <div className="w-full h-[40px] flex items-center mb-[5px] overflow-hidden border-t border-black/10">
+                      <p className="text-[0.8rem] truncate line-clamp-3">
+                        ₹{item.price}
+                      </p>
                     </div>
                   </div>
                 </div>

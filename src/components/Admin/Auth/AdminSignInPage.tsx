@@ -12,7 +12,7 @@ const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
 
   return (
     <div className="w-full h-full flex items-center justify-center p-[0px] md:p-[30px] border">
-      <div className="w-[100%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%] h-[100%] border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
+      <div className="w-[100%] h-[80%] md:w-[70%] grid grid-cols-[100%] grid-rows-[40vh_70vh] md:grid-cols-[50%_50%] md:grid-rows-[100%]  border border-black/10 p-[5px] overflow-y-scroll hide-scrollbar">
         <section className="w-full h-full flex items-center justify-center">
           <div className="w-[80%] h-[80%] flex flex-col">
             <p className="text-[2rem] font-medium">

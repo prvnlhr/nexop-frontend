@@ -17,7 +17,9 @@ const page = async ({
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
   const queryParams = await searchParams;
+  console.log(" queryParams:", queryParams);
   const { userId } = await params;
+  console.log(" userId:", userId);
   const checkoutData: CheckoutData = await getCheckOutDetails(
     userId,
     queryParams

@@ -8,6 +8,7 @@ export async function getCheckOutDetails(
     const url = new URL(`${BASE_URL}/api/storefront/checkout/${userId}`);
 
     Object.entries(queryParams).forEach(([key, value]) => {
+      console.log(key, value);
       url.searchParams.append(key, value);
     });
 
@@ -17,14 +18,13 @@ export async function getCheckOutDetails(
         "Content-Type": "application/json",
       },
     });
-
-    // if (!response.ok) {
-    //   const errorData = await response.json();
-    //   console.log(" errorData:", errorData);
-    //   throw new Error(
-    //     errorData.error || errorData.message || "Failed to get checkout details"
-    //   );
-    // }
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log(" errorData:", errorData);
+      throw new Error(
+        errorData.error || errorData.message || "Failed to get checkout details"
+      );
+    }
 
     const result = await response.json();
     return result.data;

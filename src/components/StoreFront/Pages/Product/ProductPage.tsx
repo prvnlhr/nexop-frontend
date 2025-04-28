@@ -18,6 +18,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ data }) => {
       data.type === "PRODUCTS_WITH_ATTRIBUTES" ? data.attributes : undefined,
     categories:
       data.type === "PRODUCTS_WITH_SUBCATEGORIES" ? data.categories : undefined,
+    toggleSidebar,
   };
 
   const products =
@@ -33,15 +34,12 @@ const ProductPage: React.FC<ProductPageProps> = ({ data }) => {
           showSidebar ? "translate-x-0" : "-translate-x-[50%]"
         } w-[200%] lg:w-full lg:translate-x-0`}
       >
-        <div
-          className="w-1/2 lg:w-[20%] h-full relative flex bg-[#F3F7FA] border-r border-black/10"
-          onClick={toggleSidebar}
-        >
+        <div className="w-1/2 lg:w-[20%] h-full relative flex bg-[#F3F7FA] border-r border-black/10">
           <Sidebar {...sidebarProps} />
         </div>
 
-        <div className="w-1/2 lg:w-[80%] h-[100%]" onClick={toggleSidebar}>
-          <ProductList products={products} />
+        <div className="w-1/2 lg:w-[80%] h-[100%]">
+          <ProductList products={products} toggleSidebar={toggleSidebar} />
         </div>
       </div>
     </div>

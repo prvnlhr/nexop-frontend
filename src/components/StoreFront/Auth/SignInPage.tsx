@@ -1,6 +1,6 @@
 "use client";
 import AuthForm from "@/components/Common/Auth/AuthForm";
-import { useSession } from "@/lib/auth/useSession";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React from "react";
 
@@ -9,21 +9,20 @@ interface SignInPageProps {
 }
 const SignInPage = ({ redirectURL = "/shop" }: SignInPageProps) => {
   const router = useRouter();
-  const { user } = useSession();
+  const { data: session } = useSession();
 
   const reconstructRedirect = () => {
-    if (!user?.id) return redirectURL;
-
-    // Handle cases where the redirect contains placeholder paths
-    if (redirectURL.includes("/user/cart")) {
-      return redirectURL.replace("/user/cart", `/user/${user.id}/cart`);
+    if (!session?.user?.id) {
+      return redirectURL;
     }
-    if (redirectURL.includes("/undefined")) {
-      return redirectURL.replace("/undefined", `/${user.id}`);
+
+    if (redirectURL.includes("cart")) {
+      return `/shop/user/${session.user.id}/cart`;
     }
 
     return redirectURL;
   };
+
   const handleSuccess = () => {
     const finalRedirect = reconstructRedirect();
     router.push(finalRedirect);

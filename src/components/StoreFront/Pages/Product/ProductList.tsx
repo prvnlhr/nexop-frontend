@@ -1,4 +1,5 @@
 import { FormattedProduct } from "@/types/storefront/productPageListType";
+import { Icon } from "@iconify/react/dist/iconify.js";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -6,8 +7,12 @@ import React from "react";
 
 interface ProductListProps {
   products: FormattedProduct[];
+  toggleSidebar: () => void;
 }
-const ProductList: React.FC<ProductListProps> = ({ products }) => {
+const ProductList: React.FC<ProductListProps> = ({
+  products,
+  toggleSidebar,
+}) => {
   const { categorySlug } = useParams();
 
   const getProductUrl = (prod: FormattedProduct): string => {
@@ -33,9 +38,17 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
   };
 
   return (
-    <div className="w-full h-full flex items-center justify-center p-[20px]">
+    <div className="w-full h-full flex flex-col items-center justify-center">
+      <div className="w-full h-[30px] flex items-center border-b md:border-transparent border-black/5">
+        <button
+          onClick={toggleSidebar}
+          className="h-[100%] w-auto flex md:hidden items-center justify-center"
+        >
+          <Icon icon="ic:sharp-menu" className="h-[80%]" />
+        </button>
+      </div>
       <div
-        className="w-[100%] h-[100%] grid grid-cols-2 md:grid-cols-5 gap-[30px] overflow-y-scroll"
+        className="w-[100%] h-[calc(100%-30px)] grid grid-cols-2 md:grid-cols-5 gap-[30px] overflow-y-scroll p-[20px]"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {products.map((prod, pId) => (
@@ -74,10 +87,10 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
               <div className="w-full h-auto flex items-center my-[10px]">
                 <p className="text-[0.7rem] font-medium">
                   ₹ {prod.price}
-                  <span className="text-[0.65rem] text-[#667085] line-through ml-[5px]">
+                  {/* <span className="text-[0.65rem] text-[#667085] line-through ml-[5px]">
                     MRP : ₹9096.45
                   </span>
-                  <span className=" text-[0.65rem] ml-[5px]">11% Off</span>
+                  <span className=" text-[0.65rem] ml-[5px]">11% Off</span> */}
                 </p>
               </div>
             </div>

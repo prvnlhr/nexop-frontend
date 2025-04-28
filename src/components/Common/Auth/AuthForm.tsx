@@ -4,7 +4,10 @@ import { FieldErrors, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signUp } from "@/lib/services/auth/authServices";
-import { signIn } from "next-auth/react";
+import { authenticate } from "@/actions/auth/authenticate";
+import { Oval } from "react-loader-spinner";
+import { useSession } from "next-auth/react";
+
 // Zod schemas
 const signInSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -35,6 +38,7 @@ type AuthFormProps = {
 };
 
 const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
+  const { update } = useSession();
   const {
     register,
     handleSubmit,
@@ -51,69 +55,55 @@ const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
           role: "customer" | "admin";
         });
       } else {
-        // await signIn({ ...data, role } as SignInFormData & {
-        //   role: "customer" | "admin";
-        // });
-
-        const result = await signIn("credentials", {
+        const result = await authenticate({
           email: data.email,
           password: data.password,
           role: role,
-          redirect: false,
         });
 
-        if (result?.error) {
-          throw new Error(result.error);
+        if (result.error) {
+          const errorMessage = result.error.message;
+          if (errorMessage.includes("No account found")) {
+            setError("email", {
+              message: "No account found with this email",
+            });
+          } else if (errorMessage.includes("Incorrect password")) {
+            setError("password", {
+              message: "Incorrect password",
+            });
+          } else if (errorMessage.includes("Invalid role")) {
+            setError("root", {
+              message: "Selected role does not match your account",
+            });
+          } else if (errorMessage.includes("Invalid input")) {
+            setError("root", {
+              message: errorMessage.replace("Invalid input: ", ""),
+            });
+          } else if (errorMessage.includes("No user data")) {
+            setError("root", {
+              message: "Authentication failed due to missing user data",
+            });
+          } else {
+            setError("root", {
+              message: errorMessage || "Failed to sign in. Please try again.",
+            });
+          }
+          return;
         }
+        await update();
       }
       onSuccess();
-    } catch (error) {
-      console.log(" error:", error);
-      if (error instanceof Error) {
-        // Handle specific error messages from the server
-        const errorMessage = error.message;
-
-        // For sign-in specific errors
-        if (!isSignUp) {
-          if (errorMessage.includes("No account found")) {
-            setError("root", {
-              message: "Account with this email does not exist",
-            });
-            return;
-          }
-          if (errorMessage.includes("Incorrect password")) {
-            setError("root", { message: "Invalid password" });
-            return;
-          }
-          if (errorMessage.includes("Invalid role")) {
-            setError("root", { message: "Unauthorized access for this role" });
-            return;
-          }
-        }
-
-        // For sign-up specific errors
-        if (isSignUp && errorMessage.includes("Email already exists")) {
-          setError("root", { message: "This email is already registered" });
-          return;
-        }
-
-        // For network errors
-        if (errorMessage.includes("Network error")) {
-          setError("root", {
-            message: "Network error. Please check your connection.",
-          });
-          return;
-        }
-
-        // Fallback to generic error message
-        setError("root", {
-          message: isSignUp
-            ? "Failed to create account. Please try again."
-            : "Failed to sign in. Please try again.",
-        });
-      } else {
-        setError("root", { message: "An unexpected error occurred" });
-      }
+    } catch (error: unknown) {
+      console.error("Auth error:", error);
+      const message =
+        error instanceof Error &&
+        (error.message.includes("Network error") ||
+          error.message.includes("Failed to fetch"))
+          ? "Network error. Please check your connection."
+          : isSignUp
+          ? "Failed to create account. Please try again."
+          : "Failed to sign in. Please try again.";
+      setError("root", { message });
     }
   };
 
@@ -122,14 +112,15 @@ const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
   ): errors is FieldErrors<SignUpFormData> => {
     return !!errors && "fullname" in errors;
   };
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="w-[95%] h-[90%] md:w-[80%] md:h-[80%] grid grid-rows-[15%_20%_20%_20%_25%] border border-black/10 rounded px-[25px] py-[10px]"
+      className="w-[95%] h-[90%] md:w-[80%] md:h-[100%] grid grid-rows-[15%_20%_20%_20%_25%] border border-black/10 rounded px-[25px] py-[10px]"
     >
       <div className="w-full h-full flex items-center justify-center">
         {errors.root && (
-          <p className="text-red-500 text-[0.75rem] bg-red-200 px-[10px] py-[5px] rounded ">
+          <p className="text-red-500 text-[0.75rem] bg-red-200 px-[10px] py-[5px] rounded">
             {errors.root.message}
           </p>
         )}
@@ -151,7 +142,7 @@ const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
           <div className="w-full h-[100%]">
             {hasFullnameError(errors) && (
               <p className="text-red-500 text-[0.7rem]">
-                {errors.fullname && errors.fullname.message}
+                {errors.fullname?.message}
               </p>
             )}
           </div>
@@ -204,18 +195,26 @@ const AuthForm = ({ isSignUp, role, basePath, onSuccess }: AuthFormProps) => {
         <div className="w-full h-[50%]">
           <button
             type="submit"
-            className="w-full h-[80%] bg-[#444444]"
+            className="w-full h-[80%] flex items-center justify-center  bg-[#444444] text-white"
             disabled={isSubmitting}
           >
-            <p className="text-[0.7rem] text-white">
-              {isSubmitting
-                ? isSignUp
-                  ? "Signing Up..."
-                  : "Signing In..."
-                : isSignUp
-                ? "Sign Up"
-                : "Sign In"}
-            </p>
+            {isSubmitting ? (
+              <div className="w-[18px] h-[18px] flex items-center">
+                <Oval
+                  visible={true}
+                  color="white"
+                  secondaryColor="transparent"
+                  strokeWidth="3"
+                  ariaLabel="oval-loading"
+                  wrapperStyle={{}}
+                  wrapperClass="w-[20px] h-[20px] flex items-center justify-center"
+                />
+              </div>
+            ) : (
+              <p className="text-[0.7rem]">
+                {isSignUp ? "Sign Up" : "Sign In"}
+              </p>
+            )}
           </button>
         </div>
         <div className="w-full h-[50%] flex items-center justify-center">

@@ -8,9 +8,9 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Link from "next/link";
-import { useSession } from "@/lib/auth/useSession";
 import { addToCart } from "@/lib/services/storefront/cartServices";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
+import { useSession } from "next-auth/react";
 
 interface ProductDetailsPageProps {
   productDetails: ProductDetailsData;
@@ -79,7 +79,7 @@ const OptionSelector = ({
 const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   productDetails,
 }) => {
-  const { user } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { product, attributes } = productDetails;
@@ -94,10 +94,13 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
     setCurrentSelectedImage(product.images[0].url);
   }, [product]);
 
-  // Check if all attributes have a selected option
+  // Check if all attributes with options have a selected option
   const allAttributesSelected = useMemo(() => {
-    if (attributes.length === 0) return true; // If no attributes, consider as selected
-    return attributes.every(
+    const attributesWithOptions = attributes.filter(
+      (attr) => attr.options.length > 0
+    );
+    if (attributesWithOptions.length === 0) return true; // If no attributes with options, consider as selected
+    return attributesWithOptions.every(
       (attr) => searchParams.get(`attr_${attr.id}`) !== null
     );
   }, [attributes, searchParams]);
@@ -111,15 +114,18 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   const decrementQuantity = () => handleQuantityChange(quantity - 1);
 
   const handleAddToCart = async () => {
-    if (!user) {
-      router.push("/shop/auth/sign-in");
+    if (!session?.user) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("redirect", `/shop/user/${session?.user?.id}/cart`);
+      router.push(`/shop/auth/sign-in/?${params.toString()}`);
       return;
     }
+    const userId = session?.user?.id;
 
     setIsUpdatingCart(true);
     try {
       const payload = {
-        userId: user.id,
+        userId: userId,
         productId: product.id,
         variantId: product.variantId,
         quantity: quantity,
@@ -195,15 +201,17 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
             </div>
 
             <div className="w-full h-auto flex flex-col">
-              {attributes.map((attr) => (
-                <OptionSelector
-                  key={attr.id}
-                  productSlug={product.slug}
-                  categorySlug={product.category.slug}
-                  attribute={attr}
-                  onOptionSelect={() => {}}
-                />
-              ))}
+              {attributes.map((attr) =>
+                attr.options.length > 0 ? (
+                  <OptionSelector
+                    key={attr.id}
+                    productSlug={product.slug}
+                    categorySlug={product.category.slug}
+                    attribute={attr}
+                    onOptionSelect={() => {}}
+                  />
+                ) : null
+              )}
             </div>
 
             <div className="w-full h-[auto] flex flex-col my-[15px]">
@@ -227,7 +235,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                   <div className="h-[100%] aspect-square flex items-center justify-center text-[0.7rem]">
                     {isUpdatingCart ? (
                       <div className="relative h-[15px] w-[15px] flex items-center justify-center">
-                        <LoadingSpinner />
+                        <LoadingSpinner ringColor={"black"} />
                       </div>
                     ) : (
                       quantity.toString().padStart(2, "0")
@@ -259,7 +267,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
               >
                 {isUpdatingCart ? (
                   <div className="w-[15px] h-[15px] flex items-center justify-center">
-                    <LoadingSpinner />
+                    <LoadingSpinner ringColor={"black"} />
                   </div>
                 ) : (
                   <div className="w-[100%] h-[100%] flex items-center justify-center">
@@ -274,7 +282,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
               <Link
                 href={
                   allAttributesSelected
-                    ? `/shop/user/${user?.id}/checkout?type=single&product_id=${product.id}&variant_id=${product.variantId}`
+                    ? `/shop/user/${session?.user?.id}/checkout?type=single&product_id=${product.id}&variant_id=${product.variantId}`
                     : "#"
                 }
                 className={`md:w-[80%] h-[50px] flex items-center justify-center rounded-md ${
