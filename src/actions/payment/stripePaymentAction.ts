@@ -28,6 +28,7 @@ export async function createCheckoutSession({
   email,
   userId,
   queryParams,
+  shippingAddress,
 }: CheckoutSessionParams): Promise<CheckoutSessionResponse> {
   try {
     const query = new URLSearchParams();
@@ -90,6 +91,13 @@ export async function createCheckoutSession({
         ui_mode: "hosted",
         success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/confirm-order`,
         cancel_url: cancelUrl,
+        metadata: {
+          userId,
+          type: queryParams.type,
+          product_id: queryParams.product_id || "",
+          variant_id: queryParams.variant_id || "",
+          address: JSON.stringify(shippingAddress),
+        },
       });
 
     console.log("Session created with ID:", session.id);
