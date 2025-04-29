@@ -4,13 +4,12 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import UserBadge from "../../../Admin/Common/UserBadge/UserBadge";
 import Link from "next/link";
 import { Icon } from "@iconify/react/dist/iconify.js";
-// import { useSession } from "@/lib/auth/useSession";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchProducts } from "@/lib/services/storefront/searchService";
 import { SearchResult } from "@/types/storefront/searchResultTypes";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { Oval } from "react-loader-spinner";
 
 const MainHeader = () => {
@@ -20,9 +19,10 @@ const MainHeader = () => {
   const [activeSearchBox, setActiveSearchBox] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const user = session?.user;
 
   const [searchResults, setSearchResults] = useState<SearchResult>({
@@ -129,6 +129,34 @@ const MainHeader = () => {
       );
     });
     return `${basePath}?${queryParams.toString()}`;
+  };
+
+  const handleLogout = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      await signOut({ redirect: false });
+      // Force session update
+      await update();
+
+      // Handle role-based redirects
+      switch (user?.role) {
+        case "admin":
+          router.push("/admin/auth/sign-in");
+          break;
+        case "customer":
+          router.push("/shop");
+          break;
+        default:
+          router.push("/auth/sign-in");
+      }
+    } catch (error) {
+      console.error("Sign-out error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -273,8 +301,34 @@ const MainHeader = () => {
                 />
               </button>
             </div>
-            <div className="h-[100%] aspect-square flex items-center justify-center">
+            <div className="relative h-[100%] aspect-square flex items-center justify-center">
               <UserBadge />
+              <div className="top-[72px] right-[5px] absolute w-[150px] h-auto bg-white z-[999] p-[10px] rounded box-shadow border border-black/10">
+                <div className="w-full  h-full flex flex-col items-center">
+                  <Link
+                    href={"/"}
+                    className="w-full h-[40px] flex items-center text-[0.8rem] font-medium hover:bg-[#EAECF5] px-[5px] rounded mb-[5px]"
+                  >
+                    <Icon
+                      icon="material-symbols-light:orders-outline-rounded"
+                      className="w-[20px] h-[20px] mr-[3px]"
+                    />
+                    Orders
+                  </Link>
+                  <div className="w-full h-[40px] flex items-center text-[0.75rem] border rounded border-black/10">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full h-full flex items-center px-[5px] text-[0.8rem] font-medium hover:bg-[#FECDCA] cursor-pointer"
+                    >
+                      <Icon
+                        icon="si:sign-out-line"
+                        className="w-[15px] h-[15px] mr-[5px]"
+                      />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}
