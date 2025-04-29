@@ -114,7 +114,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
       <div className="w-[95%] md:w-[80%] h-[90%] grid grid-cols-1 grid-rows-[auto_70vh] md:grid-cols-[70%_30%] md:grid-rows-[100%] p-[2px] overflow-y-scroll hide-scrollbar">
         <section className="w-[100%] h-auto md:h-[100%]  md:overflow-y-scroll  hide-scrollbar border-green-500">
           <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full">
-            <div className="w-[100%] h-[auto] border border-[#D0D5DD] rounded">
+            <div className="w-[100%] h-[auto] border border-[#D0D5DD] rounded  overflow-hidden">
               <div className="w-full h-[40px] flex items-center bg-[#e4f0ff] px-[10px] border-b border-[#D0D5DD]">
                 <p className="text-[0.8rem] mt-[4px] font-medium">CONTACT</p>
               </div>
@@ -142,7 +142,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
               </div>
             </div>
-            <div className="w-[100%] h-[auto] border border-[#D0D5DD] rounded mt-[10px]">
+            <div className="w-[100%] h-[auto] border border-[#D0D5DD] rounded mt-[10px]  overflow-hidden">
               <div className="w-full h-[40px] flex items-center bg-[#e4f0ff] px-[10px] border-b border-[#D0D5DD]">
                 <p className="text-[0.8rem] mt-[4px] font-medium">SHIPPING</p>
               </div>
@@ -236,7 +236,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
               </div>
             </div>
-            <div className="w-full h-[auto] flex flex-col border border-[#D0D5DD] rounded mt-[30px]">
+            <div className="w-full h-[auto] flex flex-col border border-[#D0D5DD] rounded mt-[30px]  overflow-hidden">
               <div className="w-full h-[40px] flex items-center bg-[#e4f0ff] px-[10px] border-b border-[#D0D5DD]">
                 <p className="text-[0.8rem] mt-[4px] font-medium">PAYMENT</p>
               </div>
@@ -274,54 +274,61 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </div>
           </form>
         </section>
-        <section className="w-[100%] h-[100%] p-[5px] border-red-500">
-          <div className="w-full h-full flex flex-col p-[20px]">
-            {checkoutData.items.length > 0 &&
-              checkoutData.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="w-full h-auto grid grid-cols-[30%_70%]  border-black/10 p-[5px]"
-                >
-                  <div className="w-[100%] h-[100%]  border-red-500">
-                    <div className="w-[80%] aspect-square relative flex items-center justify-center bg-gray-100 rounded border border-black/10 overflow-hidden">
-                      <Image
-                        src={item.image}
-                        alt={item.variantName}
-                        fill={true}
-                        className="object-contain"
-                      />
+        <section className="w-[100%] h-[100%] px-[10px]">
+          <div className="w-full h-full flex flex-col border border-[#D0D5DD] rounded overflow-hidden">
+            <div className="w-full h-[40px] flex items-center bg-[#e4f0ff] px-[10px] border-b border-[#D0D5DD]">
+              <p className="text-[0.8rem] mt-[4px] font-medium">
+                ORDER SUMMARY
+              </p>
+            </div>
+            <div className="w-full h-[calc(100%-40px)] flex flex-col p-[20px]  overflow-y-scroll hide-scrollbar">
+              {checkoutData.items.length > 0 &&
+                checkoutData.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="w-full h-auto grid grid-cols-[30%_70%]  border-black/10 p-[5px]"
+                  >
+                    <div className="w-[100%] h-[100%]  border-red-500">
+                      <div className="w-[90%] aspect-square relative flex items-center justify-center bg-gray-100 rounded border border-black/10 overflow-hidden">
+                        <Image
+                          src={item.image}
+                          alt={item.variantName}
+                          fill={true}
+                          className="object-contain"
+                        />
+                      </div>
+                    </div>
+                    <div className="w-[100%] h-[100%] flex flex-col border-green-500 px-[10px]">
+                      <div className="w-full h-[40px] flex items-center mb-[5px] overflow-hidden">
+                        <p className="text-[0.8rem] truncate">
+                          {item.variantName}
+                        </p>
+                      </div>
+                      <div className="w-full h-auto flex flex-wrap items-center">
+                        {item.attributes.map((atrr, attrIndex) => (
+                          <div
+                            key={attrIndex}
+                            className="w-auto h-[auto] flex items-center mr-[8px] mb-[5px]"
+                          >
+                            <p className="text-[0.7rem] text-gray-500">
+                              {atrr.attributeName}
+                            </p>
+                            <span className="text-[0.7rem] mx-[2px]">:</span>
+                            <p className="text-[0.7rem] font-medium">
+                              {atrr.optionValue}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="w-full h-[40px] flex items-center mb-[5px] overflow-hidden border-t border-black/10">
+                        <p className="text-[0.8rem] truncate line-clamp-3">
+                          ₹{item.price}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="w-[100%] h-[100%] flex flex-col border-green-500">
-                    <div className="w-full h-[40px] flex items-center mb-[5px] overflow-hidden">
-                      <p className="text-[0.8rem] truncate">
-                        {item.variantName}
-                      </p>
-                    </div>
-                    <div className="w-full h-auto flex flex-wrap items-center">
-                      {item.attributes.map((atrr, attrIndex) => (
-                        <div
-                          key={attrIndex}
-                          className="w-auto h-[auto] flex items-center mr-[8px] mb-[5px]"
-                        >
-                          <p className="text-[0.7rem] text-gray-500">
-                            {atrr.attributeName}
-                          </p>
-                          <span className="text-[0.7rem] mx-[2px]">:</span>
-                          <p className="text-[0.7rem] font-medium">
-                            {atrr.optionValue}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="w-full h-[40px] flex items-center mb-[5px] overflow-hidden border-t border-black/10">
-                      <p className="text-[0.8rem] truncate line-clamp-3">
-                        ₹{item.price}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+            </div>
           </div>
         </section>
       </div>

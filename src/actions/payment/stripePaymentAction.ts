@@ -19,6 +19,7 @@ interface CheckoutSessionParams {
     variant_id?: string;
   };
 }
+
 interface CheckoutSessionResponse {
   id: string;
 }
@@ -37,31 +38,38 @@ export async function createCheckoutSession({
       query.append("product_id", queryParams.product_id);
     if (queryParams.variant_id)
       query.append("variant_id", queryParams.variant_id);
+
     const cancelUrl = `${
       process.env.NEXT_PUBLIC_BASE_URL
     }/shop/user/${userId}/checkout?${query.toString()}`;
 
-    // Validate inputs
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error("Stripe secret key is not configured");
-    }
-    if (!process.env.NEXT_PUBLIC_BASE_URL) {
-      throw new Error("Base URL is not configured");
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Invalid email address");
-    }
-    if (!amount || amount <= 0 || !Number.isInteger(amount)) {
-      throw new Error("Invalid amount: must be a positive integer in cents");
-    }
+    // Create order details for confirmation page
+    const orderDetails = {
+      orderId: `ORD-${Date.now()}`,
+      amount: amount / 100, // Convert to rupees
+      date: new Date().toISOString(),
+      email,
+      shippingAddress,
+      items:
+        queryParams.type === "cart"
+          ? []
+          : [
+              {
+                productId: queryParams.product_id,
+                variantId: queryParams.variant_id,
+              },
+            ],
+    };
 
-    console.log("Creating session with amount:", amount, "email:", email);
+    const encodedDetails = encodeURIComponent(JSON.stringify(orderDetails));
+    const successUrl = `${
+      process.env.NEXT_PUBLIC_BASE_URL
+    }/shop/user/${userId}/orders/order-confirmation?details=${encodedDetails}&${query.toString()}`;
 
     const session: Stripe.Checkout.Session =
       await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         customer_email: email,
-
         shipping_options: [
           {
             shipping_rate_data: {
@@ -79,9 +87,7 @@ export async function createCheckoutSession({
           {
             price_data: {
               currency: "inr",
-              product_data: {
-                name: "Nexop",
-              },
+              product_data: { name: "Nexop Order" },
               unit_amount: amount,
             },
             quantity: 1,
@@ -89,7 +95,7 @@ export async function createCheckoutSession({
         ],
         mode: "payment",
         ui_mode: "hosted",
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/confirm-order`,
+        success_url: successUrl,
         cancel_url: cancelUrl,
         metadata: {
           userId,
@@ -100,17 +106,11 @@ export async function createCheckoutSession({
         },
       });
 
-    console.log("Session created with ID:", session.id);
-
     return { id: session.id };
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
-    console.error(
-      "Stripe error:",
-      errorMessage,
-      error instanceof Error ? error.stack : undefined
-    );
+    console.error("Stripe error:", errorMessage);
     throw new Error(`Failed to create checkout session: ${errorMessage}`);
   }
 }

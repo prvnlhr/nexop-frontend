@@ -59,11 +59,41 @@ export async function createOrder(
       );
     }
 
-    console.log("Create Order Success:", result.message);
     return result.data;
   } catch (error) {
     const err = error as Error;
     console.error("Create Order Error:", err);
     throw new Error(`Failed to create order: ${err.message}`);
+  }
+}
+
+export async function fetchUserOrders(userId: string) {
+  console.log(" userId:", userId);
+  console.log(" BASE_URL:", BASE_URL);
+  try {
+    const response = await fetch(
+      `${BASE_URL}/api/storefront/orders/user-orders/${userId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Fetch Orders Error:", result.error || result.message);
+      throw new Error(
+        result.error || result.message || "Failed to fetch orders"
+      );
+    }
+
+    return result.data;
+  } catch (error) {
+    const err = error as Error;
+    console.error("Fetch Orders Error:", err);
+    throw new Error(`Failed to fetch orders: ${err.message}`);
   }
 }

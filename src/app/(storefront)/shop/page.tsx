@@ -20,7 +20,9 @@ const page = () => {
             priority={true}
           />
           <div className="absolute bottom-5 left-5 w-auto h-auto">
-            <p className="text-[1rem] text-[#101828] font-black">NEW LAUNCH</p>
+            <p className="text-[1rem] text-[#101828] font-black">
+              LAUNCHING SOON
+            </p>
             <p className="text-[3rem] text-[#101828] font-black">
               Nothing Phone (3a)
             </p>

@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { Oval } from "react-loader-spinner";
 
-const UserBadge = () => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const { data: session, update } = useSession();
+interface UserBadgeProps {
+  isLoggingOut: boolean;
+}
+const UserBadge: React.FC<UserBadgeProps> = ({ isLoggingOut }) => {
+  const { data: session } = useSession();
 
   // Directly use session data instead of local state
   const user = session?.user;
@@ -16,11 +17,23 @@ const UserBadge = () => {
     <>
       {user ? (
         <div className="h-[60%] aspect-square flex items-center justify-center bg-white rounded-full p-[2px] border border-black/20 cursor-pointer">
-          <div className="w-full h-full flex items-center justify-center bg-[#EFF1F3] rounded-full border border-black/20">
-            <p className="text-[1rem] font-medium">
-              {isLoading ? "..." : firstLetter}
-            </p>
-          </div>
+          {isLoggingOut ? (
+            <div className="w-full h-full max-w-full flex items-center justify-center bg-[#EFF1F3] rounded-full">
+              <Oval
+                visible={true}
+                color={"#336CF3"}
+                secondaryColor="transparent"
+                strokeWidth="3"
+                ariaLabel="oval-loading"
+                wrapperStyle={{}}
+                wrapperClass="w-[30px] h-[30px] flex items-center justify-center"
+              />
+            </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-[#EFF1F3] rounded-full border border-black/20">
+              <p className="text-[1rem] font-medium">{firstLetter}</p>
+            </div>
+          )}
         </div>
       ) : (
         <Link

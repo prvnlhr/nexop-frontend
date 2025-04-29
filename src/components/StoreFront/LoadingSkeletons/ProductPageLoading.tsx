@@ -42,9 +42,15 @@ const ProductPageLoading = () => {
 
         {/* ProductList Skeleton */}
         <div className="w-1/2 lg:w-[80%] h-[100%]">
-          <div className="w-full h-full flex items-center justify-center p-[20px]">
+          <div className="w-full h-full flex flex-col items-center justify-center">
+            {/* Header Bar */}
+            <div className="w-full h-[30px] flex items-center border-b md:border-transparent border-black/5">
+              <button className="h-[100%] w-auto flex md:hidden items-center justify-center"></button>
+            </div>
+
+            {/* Product Grid */}
             <div
-              className="w-[100%] h-[100%] grid grid-cols-2 md:grid-cols-5 gap-[30px] overflow-y-scroll"
+              className="w-[100%] h-[calc(100%-30px)] grid grid-cols-2 md:grid-cols-5 gap-[30px] overflow-y-scroll p-[20px]"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {Array.from({ length: 5 }).map((_, pId) => (
@@ -56,17 +62,25 @@ const ProductPageLoading = () => {
                     border border-black/10
                     rounded"
                 >
+                  {/* Image Placeholder */}
                   <div className="w-full aspect-[1/1.1] p-[8px]">
                     <div className="relative w-full h-full bg-[#F6F6F6] overflow-hidden rounded p-[20px] border border-black/10">
-                      <div className="relative w-full h-full bg-gray-200 animate-pulse rounded"></div>
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <div className="w-full h-full bg-gray-200 animate-pulse rounded"></div>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Text Placeholders */}
                   <div className="w-full h-[auto] grid grid-rows-[auto_auto_auto] p-[10px]">
+                    {/* Product Name Placeholder */}
                     <div className="w-full h-auto flex items-center">
-                      <div className="w-[80%] h-[14px] bg-gray-200 animate-pulse rounded"></div>
+                      <div className="w-[80%] h-[16px] bg-gray-200 animate-pulse rounded"></div>
                     </div>
+
+                    {/* Price Placeholder */}
                     <div className="w-full h-auto flex items-center my-[10px]">
-                      <div className="w-[60%] h-[14px] bg-gray-200 animate-pulse rounded"></div>
+                      <div className="w-[50%] h-[14px] bg-gray-200 animate-pulse rounded"></div>
                     </div>
                   </div>
                 </div>
